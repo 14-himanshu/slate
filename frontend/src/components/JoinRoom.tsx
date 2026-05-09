@@ -22,18 +22,9 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ roomId, setRoomId, joinRoom, isConn
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                position: 'relative',
                 padding: '32px 24px',
             }}
         >
-            {/* Background glow */}
-            <div style={{
-                position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%,-50%)',
-                width: 400, height: 300, borderRadius: '50%',
-                background: 'radial-gradient(ellipse, rgba(124,58,237,0.1) 0%, transparent 70%)',
-                pointerEvents: 'none',
-            }} />
-
             <div
                 className="animate-pop-in"
                 style={{
@@ -47,21 +38,21 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ roomId, setRoomId, joinRoom, isConn
             >
                 {/* Header */}
                 <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                    <BrandMark size={56} />
+                    <BrandMark size={48} />
                     <div>
                         <h2 style={{
-                            fontSize: '28px', fontWeight: 800,
+                            fontSize: '24px', fontWeight: 600,
                             color: 'var(--text-primary)',
-                            letterSpacing: '-0.04em',
-                            lineHeight: 1.1,
+                            letterSpacing: '-0.02em',
+                            lineHeight: 1.2,
                         }}>
-                            Join a Room
+                            Enter a Room
                         </h2>
-                        <p style={{ marginTop: 8, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                            Enter a room ID to start chatting in real-time
+                        <p style={{ marginTop: 8, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            Type a room ID to start chatting in real-time
                         </p>
                     </div>
-                    <StatusBadge active={isConnected} activeText="Server online" inactiveText="Connecting…" />
+                    <StatusBadge active={isConnected} activeText="Server connected" inactiveText="Connecting…" />
                 </div>
 
                 {/* Input area */}
@@ -69,8 +60,8 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ roomId, setRoomId, joinRoom, isConn
                     style={{
                         background: 'var(--bg-surface)',
                         border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-xl)',
-                        padding: '28px 24px',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '32px 24px',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 20,
@@ -84,17 +75,17 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ roomId, setRoomId, joinRoom, isConn
                         value={roomId}
                         onChange={e => setRoomId(e.target.value.toUpperCase())}
                         onKeyDown={handleKeyPress}
-                        placeholder="e.g. CHAT42"
+                        placeholder="e.g. ALPHA"
                         disabled={!isConnected}
-                        maxLength={10}
+                        maxLength={12}
                         autoFocus
                         style={{
                             textAlign: 'center',
                             fontSize: '18px',
-                            fontWeight: 700,
-                            letterSpacing: '0.15em',
+                            fontWeight: 600,
+                            letterSpacing: '0.1em',
                             textTransform: 'uppercase',
-                            height: '56px',
+                            height: '52px',
                         }}
                     />
 
@@ -105,10 +96,7 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ roomId, setRoomId, joinRoom, isConn
                         size="lg"
                         style={{ width: '100%' }}
                     >
-                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
-                        </svg>
-                        Join Room
+                        Join Conversation
                     </Button>
                 </div>
 
@@ -121,11 +109,11 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ roomId, setRoomId, joinRoom, isConn
                     fontSize: '12px',
                     color: 'var(--text-muted)',
                 }}>
-                    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                         <path d="M7 11V7a5 5 0 0110 0v4" />
                     </svg>
-                    End-to-end encrypted · Room expires when everyone leaves
+                    Fast, secure, and ephemeral
                 </div>
             </div>
         </div>

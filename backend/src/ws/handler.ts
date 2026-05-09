@@ -77,7 +77,7 @@ export function setupWebSocketServer(httpServer: Server): void {
 
       // ── JOIN ROOM ──────────────────────────────────────────
       if (parsed.type === "joinRoom") {
-        const roomId = parsed.payload["roomId"]?.trim().toUpperCase();
+        const roomId = parsed.payload?.["roomId"]?.trim().toUpperCase();
         if (!roomId) {
           send(socket, { type: "error", payload: { message: "roomId is required." } });
           return;
@@ -102,7 +102,7 @@ export function setupWebSocketServer(httpServer: Server): void {
 
       // ── LEAVE ROOM ─────────────────────────────────────────
       if (parsed.type === "leaveRoom") {
-        const roomId = parsed.payload["roomId"]?.trim().toUpperCase();
+        const roomId = parsed.payload?.["roomId"]?.trim().toUpperCase();
         if (!roomId || !user.rooms.has(roomId)) return;
 
         user.rooms.delete(roomId);
@@ -113,12 +113,12 @@ export function setupWebSocketServer(httpServer: Server): void {
 
       // ── CHAT ───────────────────────────────────────────────
       if (parsed.type === "chat") {
-        const roomId      = parsed.payload["roomId"]?.trim().toUpperCase();
-        const message     = parsed.payload["message"]?.trim() ?? "";
-        const messageType = (parsed.payload["messageType"] as "text" | "image" | "file") ?? "text";
-        const fileUrl     = parsed.payload["fileUrl"];
-        const fileName    = parsed.payload["fileName"];
-        const replyTo     = parsed.payload["replyTo"];
+        const roomId      = parsed.payload?.["roomId"]?.trim().toUpperCase();
+        const message     = parsed.payload?.["message"]?.trim() ?? "";
+        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file") ?? "text";
+        const fileUrl     = parsed.payload?.["fileUrl"];
+        const fileName    = parsed.payload?.["fileName"];
+        const replyTo     = parsed.payload?.["replyTo"];
 
         if (!roomId || !user.rooms.has(roomId)) {
           send(socket, { type: "error", payload: { message: "Join the room first." } });
@@ -162,7 +162,7 @@ export function setupWebSocketServer(httpServer: Server): void {
 
       // ── DELETE MESSAGE ──────────────────────────────────────
       if (parsed.type === "deleteMessage") {
-        const roomId = parsed.payload["roomId"]?.trim().toUpperCase();
+        const roomId = parsed.payload?.["roomId"]?.trim().toUpperCase();
         const msgId  = parsed.payload["messageId"];
 
         if (roomId && user.rooms.has(roomId) && msgId) {
@@ -180,7 +180,7 @@ export function setupWebSocketServer(httpServer: Server): void {
 
       // ── REACT MESSAGE ───────────────────────────────────────
       if (parsed.type === "reactMessage") {
-        const roomId = parsed.payload["roomId"]?.trim().toUpperCase();
+        const roomId = parsed.payload?.["roomId"]?.trim().toUpperCase();
         const msgId  = parsed.payload["messageId"];
         const icon   = parsed.payload["icon"];
 
@@ -201,7 +201,7 @@ export function setupWebSocketServer(httpServer: Server): void {
 
       // ── TYPING ─────────────────────────────────────────────
       if (parsed.type === "typing") {
-        const roomId = parsed.payload["roomId"]?.trim().toUpperCase();
+        const roomId = parsed.payload?.["roomId"]?.trim().toUpperCase();
         const isTyping = parsed.payload["isTyping"] === "true";
         if (roomId && user.rooms.has(roomId)) {
           broadcastToRoom(roomId, { type: "typing", payload: { roomId, username, isTyping } });

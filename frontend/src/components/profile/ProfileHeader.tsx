@@ -17,50 +17,50 @@ export default function ProfileHeader({ profile, messageCount, roomCount }: Prop
   const status = STATUS_MAP[profile.status] ?? STATUS_MAP.offline;
 
   const joined = new Date(profile.createdAt).toLocaleDateString('en-US', {
-    month: 'long', year: 'numeric',
+    month: 'short', year: 'numeric',
   });
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(17,17,24,0) 80%)',
+      background: 'var(--bg-surface)',
       borderBottom: '1px solid var(--border)',
-      padding: '28px 28px 24px',
+      padding: '32px 24px 28px',
     }}>
       {/* Status badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <span style={{
-          width: 10, height: 10, borderRadius: '50%',
+          width: 8, height: 8, borderRadius: '50%',
           background: status.color,
-          boxShadow: `0 0 8px ${status.color}88`,
           flexShrink: 0,
         }} />
-        <span style={{ fontSize: 13, color: status.color, fontWeight: 600 }}>{status.label}</span>
+        <span style={{ fontSize: 13, color: status.color, fontWeight: 500 }}>{status.label}</span>
       </div>
 
       {/* Username + bio */}
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+      <h1 style={{ fontSize: 24, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '-0.01em' }}>
         {profile.username}
       </h1>
       <p style={{
         fontSize: 14, color: 'var(--text-secondary)',
-        minHeight: 20, marginBottom: 16,
+        lineHeight: 1.5,
+        minHeight: 20, marginBottom: 24,
         fontStyle: profile.bio ? 'normal' : 'italic',
       }}>
-        {profile.bio || 'No bio yet — add one below!'}
+        {profile.bio || 'No bio provided.'}
       </p>
 
       {/* Stats row */}
-      <div style={{ display: 'flex', gap: 24 }}>
+      <div style={{ display: 'flex', gap: 32 }}>
         {[
           { label: 'Messages', value: messageCount },
           { label: 'Rooms',    value: roomCount },
           { label: 'Joined',   value: joined },
         ].map(s => (
           <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-light)' }}>
+            <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
               {s.value}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {s.label}
             </span>
           </div>

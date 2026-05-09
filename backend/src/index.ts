@@ -30,7 +30,7 @@ async function main(): Promise<void> {
       const isAllowed =
         allowedOrigins.includes(origin) ||
         /^https:\/\/.*\.vercel\.app$/.test(origin) || // More permissive for Vercel
-        /^http:\/\/localhost(:\d+)?$/.test(origin);
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
       if (isAllowed) {
         callback(null, true);

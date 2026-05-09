@@ -55,67 +55,43 @@ function Auth({ onAuth }: AuthProps) {
                 justifyContent: 'center',
                 background: 'var(--bg-base)',
                 padding: '24px',
-                position: 'relative',
-                overflow: 'hidden',
             }}
         >
-            {/* Background glow blobs */}
-            <div style={{
-                position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
-                width: 500, height: 300, borderRadius: '50%',
-                background: 'radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, transparent 70%)',
-                pointerEvents: 'none',
-            }} />
-            <div style={{
-                position: 'absolute', bottom: '10%', right: '10%',
-                width: 300, height: 300, borderRadius: '50%',
-                background: 'radial-gradient(ellipse, rgba(14,165,233,0.07) 0%, transparent 70%)',
-                pointerEvents: 'none',
-            }} />
-
             <div
-                className="animate-pop-in"
+                className="animate-fade-in"
                 style={{
                     width: '100%',
-                    maxWidth: 420,
+                    maxWidth: 400,
                     background: 'var(--bg-surface)',
                     border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-xl)',
+                    borderRadius: 'var(--radius-lg)',
                     boxShadow: 'var(--shadow-lg)',
                     overflow: 'hidden',
-                    position: 'relative',
                 }}
             >
-                {/* Top accent line */}
-                <div style={{
-                    height: 3,
-                    background: 'linear-gradient(90deg, #7c3aed, #6d28d9, #5b21b6)',
-                    boxShadow: '0 2px 16px rgba(124,58,237,0.6)',
-                }} />
-
-                <div style={{ padding: '40px 36px' }}>
+                <div style={{ padding: '48px 40px' }}>
                     {/* Header */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginBottom: 36, textAlign: 'center' }}>
-                        <BrandMark size={52} />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginBottom: 40, textAlign: 'center' }}>
+                        <BrandMark size={48} />
                         <div>
-                            <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1.2 }}>
-                                {isLogin ? 'Welcome back' : 'Create account'}
+                            <h1 style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                                {isLogin ? 'Sign in to SyncTalk' : 'Create an account'}
                             </h1>
-                            <p style={{ marginTop: 8, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                                {isLogin ? 'Sign in to join the conversation.' : 'Join the real-time chat network.'}
+                            <p style={{ marginTop: 8, fontSize: '14px', color: 'var(--text-secondary)' }}>
+                                {isLogin ? 'Enter your details to access your account' : 'Start chatting with your team today'}
                             </p>
                         </div>
                     </div>
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                         <Field
                             id="auth-username"
                             label="Username"
                             type="text"
                             value={username}
                             onChange={e => { setUsername(e.target.value); setFieldErrors(prev => ({...prev, username: ''})); setGlobalError(''); }}
-                            placeholder="Enter your username"
+                            placeholder="johndoe"
                             autoFocus
                             autoComplete="username"
                             error={fieldErrors.username}
@@ -126,27 +102,26 @@ function Auth({ onAuth }: AuthProps) {
                             type="password"
                             value={password}
                             onChange={e => { setPassword(e.target.value); setFieldErrors(prev => ({...prev, password: ''})); setGlobalError(''); }}
-                            placeholder="Enter your password"
+                            placeholder="••••••••"
                             autoComplete={isLogin ? 'current-password' : 'new-password'}
                             error={fieldErrors.password}
                         />
 
                         {globalError && (
                             <div
-                                className="animate-fade-in"
                                 style={{
-                                    background: 'rgba(239,68,68,0.08)',
-                                    border: '1px solid rgba(239,68,68,0.25)',
-                                    borderRadius: 'var(--radius-sm)',
-                                    padding: '10px 14px',
+                                    background: 'rgba(239,68,68,0.05)',
+                                    border: '1px solid rgba(239,68,68,0.1)',
+                                    borderRadius: 'var(--radius-md)',
+                                    padding: '12px',
                                     fontSize: '13px',
-                                    color: '#f87171',
+                                    color: 'var(--danger)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 8,
                                 }}
                             >
-                                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                                 </svg>
                                 {globalError}
@@ -158,22 +133,22 @@ function Auth({ onAuth }: AuthProps) {
                             type="submit"
                             size="lg"
                             disabled={isLoading}
-                            style={{ width: '100%', marginTop: 4, opacity: isLoading ? 0.7 : 1 }}
+                            style={{ width: '100%', marginTop: 8 }}
                         >
                             {isLoading ? (
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} style={{ animation: 'spin 1s linear infinite' }}>
-                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }}>
+                                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                                     </svg>
-                                    {isLogin ? 'Signing in…' : 'Creating account…'}
+                                    {isLogin ? 'Signing in...' : 'Creating account...'}
                                 </span>
                             ) : isLogin ? 'Sign In' : 'Create Account'}
                         </Button>
                     </form>
 
                     {/* Toggle */}
-                    <div style={{ marginTop: 28, textAlign: 'center' }}>
-                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <div style={{ marginTop: 32, textAlign: 'center' }}>
+                        <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
                             {isLogin ? "Don't have an account?" : 'Already have an account?'}
                             {' '}
                             <button
@@ -184,14 +159,13 @@ function Auth({ onAuth }: AuthProps) {
                                     background: 'none',
                                     border: 'none',
                                     cursor: 'pointer',
-                                    color: 'var(--accent-light)',
-                                    fontWeight: 600,
-                                    fontSize: '13px',
-                                    fontFamily: 'inherit',
-                                    padding: '0 2px',
+                                    color: 'var(--accent)',
+                                    fontWeight: 500,
+                                    fontSize: '14px',
+                                    padding: '0 4px',
                                 }}
                             >
-                                {isLogin ? 'Sign Up' : 'Sign In'}
+                                {isLogin ? 'Sign up' : 'Sign in'}
                             </button>
                         </p>
                     </div>

@@ -69,10 +69,10 @@ function Sidebar({ joinedRooms, activeRoom, unreadByRoom, onlineUsers, currentUs
             height: '100%',
         }}>
             {/* Brand */}
-            <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <BrandMark size={32} />
+            <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <BrandMark size={28} />
                 <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>SyncTalk</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>SyncTalk</div>
                     <StatusBadge active={isConnected} activeText="Online" inactiveText="Offline" />
                 </div>
             </div>
@@ -90,19 +90,19 @@ function Sidebar({ joinedRooms, activeRoom, unreadByRoom, onlineUsers, currentUs
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         style={{
-                            width: '100%', background: 'var(--bg-overlay)', border: '1px solid transparent',
-                            borderRadius: 6, padding: '6px 10px 6px 30px', fontSize: 12, color: 'var(--text-primary)',
-                            outline: 'none', transition: 'all 0.2s',
+                            width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)',
+                            borderRadius: 6, padding: '8px 10px 8px 32px', fontSize: 13, color: 'var(--text-primary)',
+                            outline: 'none', transition: 'all 0.15s',
                         }}
-                        onFocus={e => { e.currentTarget.style.border = '1px solid rgba(124,58,237,0.3)'; e.currentTarget.style.background = 'rgba(0,0,0,0.2)'; }}
-                        onBlur={e => { e.currentTarget.style.border = '1px solid transparent'; e.currentTarget.style.background = 'var(--bg-overlay)'; }}
+                        onFocus={e => { e.currentTarget.style.borderColor = 'var(--border-focus)'; e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent-bg)'; }}
+                        onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                 </div>
             </div>
 
             {/* Room list */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px 8px 0' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '0 8px 8px' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0 8px 8px' }}>
                     Rooms
                 </div>
 
@@ -122,12 +122,11 @@ function Sidebar({ joinedRooms, activeRoom, unreadByRoom, onlineUsers, currentUs
                             onMouseEnter={() => setHoveredRoom(room)}
                             onMouseLeave={() => setHoveredRoom(null)}
                             onClick={() => onSwitch(room)}
-                            style={{
+                             style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                padding: '8px 10px', borderRadius: 8, cursor: 'pointer', marginBottom: 2,
-                                background: active ? 'var(--accent-bg)' : hovered ? 'var(--bg-overlay)' : 'transparent',
-                                border: active ? '1px solid rgba(124,58,237,0.3)' : '1px solid transparent',
-                                transition: 'all 0.15s ease',
+                                padding: '8px 10px', borderRadius: 6, cursor: 'pointer', marginBottom: 2,
+                                background: active ? 'var(--accent-bg)' : hovered ? 'var(--bg-hover)' : 'transparent',
+                                transition: 'all 0.1s ease',
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
@@ -167,7 +166,7 @@ function Sidebar({ joinedRooms, activeRoom, unreadByRoom, onlineUsers, currentUs
                     );
                 })}
 
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '16px 8px 8px', marginTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '16px 8px 8px', marginTop: 8, borderTop: '1px solid var(--border-subtle)' }}>
                     Active Users
                 </div>
 
@@ -210,24 +209,25 @@ function Sidebar({ joinedRooms, activeRoom, unreadByRoom, onlineUsers, currentUs
                             }}
                         />
                         <button onClick={submit} style={{
-                            background: 'linear-gradient(135deg,#7c3aed,#6d28d9)', border: 'none',
-                            borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '0 10px', fontSize: 12, fontWeight: 600,
+                            background: 'var(--accent)', border: 'none',
+                            borderRadius: 6, color: '#fff', cursor: 'pointer', padding: '0 12px', fontSize: 12, fontWeight: 500,
                         }}>Join</button>
                     </div>
                 ) : (
-                    <button
+                     <button
                         id="add-room-btn"
                         onClick={() => setAdding(true)}
                         style={{
                             width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                            background: 'rgba(124,58,237,0.1)', border: '1px dashed rgba(124,58,237,0.3)',
-                            borderRadius: 8, padding: '9px 12px', cursor: 'pointer', color: 'var(--accent-light)',
-                            fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s ease',
+                            background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                            borderRadius: 6, padding: '8px 12px', cursor: 'pointer', color: 'var(--text-primary)',
+                            fontSize: 13, fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.1s ease',
+                            boxShadow: 'var(--shadow-sm)',
                         }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.18)'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.1)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; }}
                     >
-                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
                         Join a Room
@@ -242,22 +242,22 @@ function Sidebar({ joinedRooms, activeRoom, unreadByRoom, onlineUsers, currentUs
 function NoRoomSelected() {
     return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'var(--text-muted)', padding: 32, textAlign: 'center' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--accent-bg)', border: '1px solid rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="var(--accent-light)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <div style={{ width: 56, height: 56, borderRadius: 'var(--radius-md)', background: 'var(--bg-hover)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                 </svg>
             </div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>No room selected</p>
-            <p style={{ fontSize: 13, lineHeight: 1.6 }}>Join or create a room to begin</p>
+            <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>No room selected</p>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Join a room from the sidebar to start chatting</p>
         </div>
     );
 }
 
 function EmptyMessages() {
     return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 32, textAlign: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 48, textAlign: 'center' }}>
             <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>No messages yet</p>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No messages yet. Start the conversation.</p>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Send a message to start the conversation</p>
         </div>
     );
 }
@@ -266,7 +266,7 @@ function EmptyMessages() {
 /* ── Message List Components ──────────────────────────────── */
 function MessageActions({ msg, mine, onReact, onReply, onEdit, onDelete, onMoreClick, moreBtnRef }: any) {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.3)', padding: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: 'var(--shadow-md)', padding: 2 }}>
             <button onClick={() => onReact(msg, 'like')} title="Like" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '6px', display: 'flex', transition: 'color 0.15s, background 0.15s', borderRadius: 4 }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
             </button>
@@ -319,20 +319,79 @@ function MessageContextMenu({ msg, mine, onReply, onEdit, onDelete, onClose, pos
         const handleClick = () => onClose();
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('click', handleClick);
-        return () => { document.removeEventListener('keydown', handleKeyDown); document.removeEventListener('click', handleClick); };
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('click', handleClick);
+        };
     }, [onClose]);
 
     return (
-        <div style={{ position: 'fixed', top: position.top, left: position.left, right: position.right, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px', display: 'flex', flexDirection: 'column', gap: 2, minWidth: 180, zIndex: 100, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }} onClick={e => e.stopPropagation()}>
-            <ContextMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg>} label="Reply" onClick={() => { onReply(msg); onClose(); }} />
-            <ContextMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>} label="Copy text" onClick={() => { navigator.clipboard.writeText(msg.text); onClose(); }} />
-            <ContextMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>} label="Pin message" onClick={() => { onClose(); }} />
-            <ContextMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>} label="Mark unread" onClick={() => { onClose(); }} />
+        <div 
+            style={{ 
+                position: 'fixed', 
+                top: position.top, 
+                left: position.left, 
+                right: position.right, 
+                background: 'var(--bg-surface)', 
+                border: '1px solid var(--border)', 
+                borderRadius: 6, 
+                padding: '6px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 2, 
+                minWidth: 180, 
+                zIndex: 100, 
+                boxShadow: 'var(--shadow-lg)' 
+            }} 
+            onClick={e => e.stopPropagation()}
+        >
+            <ContextMenuItem 
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg>} 
+                label="Reply" 
+                onClick={() => { onReply(msg); onClose(); }} 
+            />
+            <ContextMenuItem 
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>} 
+                label="Copy text" 
+                onClick={() => { navigator.clipboard.writeText(msg.text); onClose(); }} 
+            />
+            <ContextMenuItem 
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>} 
+                label="Pin message" 
+                onClick={() => onClose()} 
+            />
+            <ContextMenuItem 
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>} 
+                label="Mark unread" 
+                onClick={() => onClose()} 
+            />
+            
             {mine && <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />}
-            {mine && msg.type === 'text' && <ContextMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>} label="Edit Message" onClick={() => { onEdit(msg); onClose(); }} />}
-            {mine && <ContextMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>} label="Delete Message" onClick={() => { onDelete(msg); onClose(); }} danger />}
+            {mine && msg.type === 'text' && (
+                <ContextMenuItem 
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>} 
+                    label="Edit Message" 
+                    onClick={() => { onEdit(msg); onClose(); }} 
+                />
+            )}
+            {mine && (
+                <ContextMenuItem 
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>} 
+                    label="Delete Message" 
+                    onClick={() => { onDelete(msg); onClose(); }} 
+                    danger 
+                />
+            )}
+            
             {!mine && <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />}
-            {!mine && <ContextMenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>} label="Report Message" onClick={() => { onClose(); }} danger />}
+            {!mine && (
+                <ContextMenuItem 
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>} 
+                    label="Report Message" 
+                    onClick={() => onClose()} 
+                    danger 
+                />
+            )}
         </div>
     );
 }
@@ -355,8 +414,8 @@ function MessageItem({ msg, mine, sameAsPrev, sameAsNext, onReply, onEdit, onDel
     };
 
     const br = mine
-        ? { borderTopLeftRadius: 18, borderBottomLeftRadius: 18, borderTopRightRadius: sameAsPrev ? 6 : 18, borderBottomRightRadius: sameAsNext ? 6 : 18 }
-        : { borderTopRightRadius: 18, borderBottomRightRadius: 18, borderTopLeftRadius: sameAsPrev ? 6 : 18, borderBottomLeftRadius: sameAsNext ? 6 : 18 };
+        ? { borderTopLeftRadius: 12, borderBottomLeftRadius: 12, borderTopRightRadius: sameAsPrev ? 4 : 12, borderBottomRightRadius: sameAsNext ? 4 : 12 }
+        : { borderTopRightRadius: 12, borderBottomRightRadius: 12, borderTopLeftRadius: sameAsPrev ? 4 : 12, borderBottomLeftRadius: sameAsNext ? 4 : 12 };
 
     return (
         <article
@@ -385,8 +444,8 @@ function MessageItem({ msg, mine, sameAsPrev, sameAsNext, onReply, onEdit, onDel
                         </div>
                     )}
                     
-                    {/* Bubble */}
-                    <div style={{ ...br, padding: msg.type === 'image' ? '4px' : '9px 14px', fontSize: 14, lineHeight: 1.6, wordBreak: 'break-word', whiteSpace: 'pre-wrap', background: mine ? 'linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%)' : 'var(--bg-elevated)', color: mine ? '#fff' : 'var(--text-primary)', border: mine ? 'none' : '1px solid var(--border)', boxShadow: mine ? '0 4px 16px rgba(124,58,237,0.3)' : '0 2px 8px rgba(0,0,0,0.25)', overflow: 'hidden', opacity: msg.deleted ? 0.6 : 1, fontStyle: msg.deleted ? 'italic' : 'normal', transition: 'filter 0.2s', filter: (isHovered && !msg.deleted) ? 'brightness(1.05)' : 'none' }}>
+                     {/* Bubble */}
+                    <div style={{ ...br, padding: msg.type === 'image' ? '4px' : '8px 12px', fontSize: 14, lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-wrap', background: mine ? 'var(--my-bubble)' : 'var(--their-bubble)', color: mine ? '#fff' : 'var(--text-primary)', border: mine ? '1px solid var(--my-bubble)' : '1px solid var(--border)', opacity: msg.deleted ? 0.6 : 1, fontStyle: msg.deleted ? 'italic' : 'normal', transition: 'filter 0.1s', filter: (isHovered && !msg.deleted) ? 'brightness(1.05)' : 'none' }}>
                         {/* Reply context */}
                         {msg.replyTo && (
                             <div 
@@ -616,10 +675,10 @@ function Composer({ value, setValue, sendMessage, sendFileMessage, isConnected, 
                     placeholder={disabled ? 'Select a room…' : uploading ? 'Uploading…' : isConnected ? 'Type a message…' : 'Reconnecting…'}
                     style={{ flex: 1, height: 40, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--text-primary)', fontFamily: 'inherit', caretColor: 'var(--accent-light)' }}
                 />
-                <button id="send-message-btn" onClick={handleSend} disabled={!canSend} aria-label="Send"
-                    style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: canSend ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'var(--bg-elevated)', color: canSend ? '#fff' : 'var(--text-muted)', cursor: canSend ? 'pointer' : 'not-allowed', flexShrink: 0, boxShadow: canSend ? '0 2px 12px rgba(124,58,237,0.4)' : 'none', transition: 'all 0.18s' }}>
-                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                 <button id="send-message-btn" onClick={handleSend} disabled={!canSend} aria-label="Send"
+                    style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: canSend ? 'var(--accent)' : 'var(--bg-hover)', color: canSend ? '#fff' : 'var(--text-muted)', cursor: canSend ? 'pointer' : 'not-allowed', flexShrink: 0, transition: 'all 0.1s' }}>
+                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
                     </svg>
                 </button>
             </div>
@@ -679,9 +738,9 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
                 {/* Header */}
                 <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 60, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', flexShrink: 0, gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-light)' }}>#</span>
-                        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 18, fontWeight: 500, color: 'var(--text-muted)' }}>#</span>
+                        <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                             {activeRoom ?? 'No room selected'}
                         </span>
                     </div>
@@ -719,28 +778,21 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                             </div>
                         )}
                         {/* Profile button */}
-                        <button
+                         <button
                             id="open-profile-btn"
                             onClick={onOpenProfile}
                             title={`${currentUser ?? 'Profile'} — click to open profile`}
                             style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                                border: '2px solid rgba(124,58,237,0.4)',
-                                color: '#fff', fontWeight: 700, fontSize: 13,
+                                width: 32, height: 32, borderRadius: 'var(--radius-md)',
+                                background: 'var(--accent)',
+                                border: 'none',
+                                color: '#fff', fontWeight: 600, fontSize: 13,
                                 cursor: 'pointer', flexShrink: 0,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: '0 0 12px var(--accent-glow)',
-                                transition: 'transform 0.15s, box-shadow 0.15s',
+                                transition: 'opacity 0.1s',
                             }}
-                            onMouseEnter={e => {
-                                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.1)';
-                                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 20px var(--accent-glow)';
-                            }}
-                            onMouseLeave={e => {
-                                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-                                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 12px var(--accent-glow)';
-                            }}
+                            onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; }}
+                            onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
                         >
                             {(currentUser ?? 'U').slice(0, 2).toUpperCase()}
                         </button>

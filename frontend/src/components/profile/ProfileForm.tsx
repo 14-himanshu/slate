@@ -52,32 +52,26 @@ export default function ProfileForm({ profile, onUpdate, onToast }: Props) {
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '10px 14px',
+    padding: '10px 12px',
     background: 'var(--bg-input)',
     border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-sm)',
+    borderRadius: 'var(--radius-md)',
     color: 'var(--text-primary)',
     fontSize: 14,
     outline: 'none',
-    transition: 'border-color 0.18s',
+    transition: 'all 0.1s ease',
   };
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 12,
-    fontWeight: 600,
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.07em',
-    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--text-primary)',
+    marginBottom: 8,
     display: 'block',
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
-        Edit Profile
-      </h2>
-
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Username */}
       <div>
         <label style={labelStyle}>Username</label>
@@ -87,29 +81,29 @@ export default function ProfileForm({ profile, onUpdate, onToast }: Props) {
           onChange={e => setUsername(e.target.value)}
           maxLength={30}
           minLength={3}
-          placeholder="Your username"
-          onFocus={e => (e.target.style.borderColor = 'var(--border-focus)')}
-          onBlur={e  => (e.target.style.borderColor = 'var(--border)')}
+          placeholder="Enter username"
+          onFocus={e => { e.target.style.borderColor = 'var(--border-focus)'; e.target.style.boxShadow = '0 0 0 2px var(--accent-bg)'; }}
+          onBlur={e  => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
         />
       </div>
 
       {/* Bio */}
       <div>
-        <label style={labelStyle}>Bio <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({bio.length}/150)</span></label>
+        <label style={labelStyle}>Bio <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}>({bio.length}/150)</span></label>
         <textarea
-          style={{ ...inputStyle, resize: 'vertical', minHeight: 72, fontFamily: 'inherit' }}
+          style={{ ...inputStyle, resize: 'vertical', minHeight: 80, fontFamily: 'inherit' }}
           value={bio}
           onChange={e => setBio(e.target.value)}
           maxLength={150}
-          placeholder="Tell people about yourself…"
-          onFocus={e => (e.target.style.borderColor = 'var(--border-focus)')}
-          onBlur={e  => (e.target.style.borderColor = 'var(--border)')}
+          placeholder="Write something about yourself..."
+          onFocus={e => { e.target.style.borderColor = 'var(--border-focus)'; e.target.style.boxShadow = '0 0 0 2px var(--accent-bg)'; }}
+          onBlur={e  => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
         />
       </div>
 
       {/* Status */}
       <div>
-        <label style={labelStyle}>Status</label>
+        <label style={labelStyle}>Availability Status</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {STATUSES.map(s => (
             <button
@@ -117,21 +111,22 @@ export default function ProfileForm({ profile, onUpdate, onToast }: Props) {
               type="button"
               onClick={() => setStatus(s.value)}
               style={{
-                padding: '7px 14px',
-                borderRadius: 'var(--radius-full)',
-                border: `1px solid ${status === s.value ? s.color : 'var(--border)'}`,
-                background: status === s.value ? `${s.color}22` : 'var(--bg-elevated)',
-                color: status === s.value ? s.color : 'var(--text-secondary)',
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid',
+                borderColor: status === s.value ? 'var(--accent)' : 'var(--border)',
+                background: status === s.value ? 'var(--accent-bg)' : 'var(--bg-surface)',
+                color: status === s.value ? 'var(--text-primary)' : 'var(--text-secondary)',
                 fontSize: 13,
-                fontWeight: status === s.value ? 600 : 400,
+                fontWeight: 500,
                 cursor: 'pointer',
-                transition: 'all 0.15s',
+                transition: 'all 0.1s',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6
+                gap: 8
               }}
             >
-              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
+              <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', backgroundColor: s.color }} />
               {s.label}
             </button>
           ))}
@@ -143,19 +138,19 @@ export default function ProfileForm({ profile, onUpdate, onToast }: Props) {
         type="submit"
         disabled={!dirty || saving}
         style={{
-          padding: '11px 0',
-          borderRadius: 'var(--radius-sm)',
+          marginTop: 8,
+          padding: '10px 0',
+          borderRadius: 'var(--radius-md)',
           border: 'none',
-          background: dirty ? 'var(--accent)' : 'var(--bg-elevated)',
+          background: dirty ? 'var(--accent)' : 'var(--bg-hover)',
           color: dirty ? '#fff' : 'var(--text-muted)',
           fontSize: 14,
           fontWeight: 600,
           cursor: dirty && !saving ? 'pointer' : 'not-allowed',
-          transition: 'all 0.18s',
-          boxShadow: dirty ? 'var(--shadow-accent)' : 'none',
+          transition: 'all 0.1s',
         }}
       >
-        {saving ? 'Saving…' : dirty ? 'Save Changes' : 'No Changes'}
+        {saving ? 'Updating...' : 'Save Profile Changes'}
       </button>
     </form>
   );

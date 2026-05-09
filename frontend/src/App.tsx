@@ -51,11 +51,11 @@ function App() {
         return;
       }
       try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8080' : '');
-        if (!backendUrl) {
+        const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:8080' : '');
+        if (!rawBackendUrl) {
           throw new Error('Backend URL not configured');
         }
-        const cleanUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+        const cleanUrl = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
         const res = await fetch(`${cleanUrl}/api/user/me`, {
           headers: { Authorization: `Bearer ${storedToken}` }
         });
@@ -77,11 +77,11 @@ function App() {
   useEffect(() => {
     if (!isAuthenticated || !token) return;
 
-    const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8080' : '');
+    const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:8080' : '');
     const cleanBackendUrl = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
     
     // Derive WS URL if not provided
-    let wsBase = import.meta.env.VITE_WS_URL || (window.location.hostname === 'localhost' ? 'ws://localhost:8080' : cleanBackendUrl.replace(/^http/, 'ws'));
+    let wsBase = import.meta.env.VITE_WS_URL || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'ws://localhost:8080' : cleanBackendUrl.replace(/^http/, 'ws'));
     
     // Enforce wss:// in production environments
     if (wsBase.startsWith('ws://') && !wsBase.includes('localhost')) {
@@ -344,8 +344,8 @@ function App() {
     return (
       <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 40, height: 40, border: '3px solid var(--accent-bg)', borderTop: '3px solid var(--accent)', borderRadius: '50%', animation: 'shimmer 1.4s infinite linear' }} />
-          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)' }}>Initializing SyncTalk...</span>
+          <div style={{ width: 32, height: 32, border: '2px solid var(--border)', borderTop: '2px solid var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>SyncTalk is loading...</span>
         </div>
       </div>
     );
@@ -364,9 +364,9 @@ function App() {
         height: '100%', maxHeight: 820, minHeight: 560,
         background: 'var(--bg-surface)',
         border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-xl)',
+        borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
-        boxShadow: '0 32px 120px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)',
+        boxShadow: 'var(--shadow-lg)',
         display: 'flex',
       }}>
         <ChatRoom
