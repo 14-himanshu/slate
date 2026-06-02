@@ -1,10 +1,10 @@
 <div align="center">
 
-# 💬 Real Time Chat
+# 💬 Slate Chat
 
-**A modern, real-time chat application built with React, TypeScript, and WebSockets.**
+**A premium, real-time chat application built with React, TypeScript, and WebSockets.**
 
-Connect instantly. Chat in rooms. No refresh needed.
+Connect instantly. Experience high-end native-feeling UI with End-to-End Encryption, WebRTC calling, and more.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c3aed.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -17,7 +17,7 @@ Connect instantly. Chat in rooms. No refresh needed.
 
 ## 📖 Description
 
-**Real Time Chat** is a lightweight, production-styled web application that enables multiple users to communicate instantly inside shared chat rooms. Built on a raw WebSocket server (Node.js) and a React + Vite frontend, it demonstrates real-time, bi-directional communication without any third-party messaging service.
+**Slate Chat** is a high-performance, production-styled web application that enables users to communicate securely in real-time. Built on a raw WebSocket server (Node.js) and a React + Vite frontend, it provides a feature-rich experience comparable to native desktop applications like Discord or Slack.
 
 Users sign up with a username and password (stored locally), join a named room, and exchange messages that are broadcast in real-time to all room participants.
 
@@ -25,15 +25,16 @@ Users sign up with a username and password (stored locally), join a named room, 
 
 ## ✨ Features
 
-- 🔐 **Authentication** — Sign up / Sign in with client-side credential storage
-- 🚪 **Room-based Messaging** — Join any named room by ID; rooms are ephemeral
-- ⚡ **Real-time Communication** — Powered by raw WebSocket (no polling)
-- 👥 **Live User Count** — See how many users are in the room in real time
-- 💬 **Chat Bubbles** — Left/right alignment with sender grouping and timestamps
-- 📅 **Date Dividers** — Messages are visually grouped by date (Today, Yesterday, etc.)
-- 🎨 **Modern Dark UI** — Purple-accented design system with smooth animations
-- 📱 **Responsive Design** — Works on desktop and mobile
-- ⌨️ **Enter to Send** — Keyboard-first message input
+- 🔐 **End-to-End Encryption** — Client-side E2EE ensuring absolute privacy for Direct Messages.
+- 📞 **WebRTC Calling** — Integrated peer-to-peer Video and Audio calls.
+- 🚪 **Room & Direct Messaging** — Join named rooms or start private 1-on-1 conversations.
+- 📌 **Pinned Messages** — Save and view important messages in a dedicated floating panel.
+- 🔕 **Mute Notifications** — Granular notification controls saved locally per-room.
+- ⚡ **Real-time Communication** — Powered by raw WebSocket (no polling).
+- 💬 **Smart Chat Bubbles** — Auto-grouping of consecutive messages with dynamic 2-minute batching.
+- 🎨 **Obsidian Dark UI** — A premium, minimalist dark theme with vibrant Indigo accents, backdrop blurs, and glassmorphism.
+- 📎 **File & Media Sharing** — Native file and image support directly in the chat stream.
+- 😀 **Message Reactions & Context Menus** — Rich interactivity with floating action toolbars.
 
 ---
 
@@ -60,14 +61,13 @@ Users sign up with a username and password (stored locally), join a named room, 
 
 ## 🎨 UI Overview
 
-The interface follows a **dark-first design system** built entirely with CSS custom properties and inline styles for maximum portability.
+The interface follows a strict **Obsidian Graphite** design system built entirely with CSS custom properties.
 
-- **Color system** — Deep navy base (`#0a0a0f`) with purple accent (`#7c3aed`) and layered surface elevations
-- **Typography** — Inter (Google Fonts) with tight tracking and clear visual hierarchy
-- **Components** — `Button`, `Field`, `Card`, `Avatar`, `StatusBadge`, `BrandMark` — all self-contained with no external component library
-- **Animations** — `slideUp` for messages, `popIn` for modal cards, pulsing status dots
-- **Chat Layout** — Fixed header, scrollable message area, pinned composer footer
-- **Bubbles** — Gradient purple for sent messages; dark elevated surface for received; corner shaping for message groups
+- **Color system** — Deep onyx base (`#090A0C`) with vibrant Indigo accents (`#6366F1`) and layered elevated surfaces (`#16191E`).
+- **Typography** — Clean Inter font scaling with crisp, high-contrast text (`#F3F4F6`).
+- **Layout** — A streamlined, 2-column full-viewport architecture ensuring maximum chat real-estate.
+- **Glassmorphism** — Floating toolbars and dropdown modals utilize backdrop blurs (`blur(8px)`) and translucent borders for a highly premium, native-app feel.
+- **Micro-Interactions** — Smooth color transitions on hover, dynamic button states, and carefully calibrated drop-shadows.
 
 ---
 
@@ -285,13 +285,11 @@ The frontend and backend communicate via JSON messages over WebSocket.
 
 - [ ] **Persistent storage** — Save messages to a database (PostgreSQL / MongoDB)
 - [ ] **JWT authentication** — Replace localStorage auth with a real backend API
-- [ ] **Message reactions** — Emoji reactions on individual messages
-- [ ] **File & image sharing** — Upload and preview media in chat
-- [ ] **Typing indicators** — Show when other users are typing
-- [ ] **Message read receipts** — Delivered / seen status
-- [ ] **Multiple rooms sidebar** — Switch between rooms without re-joining
-- [ ] **Push notifications** — Browser notifications for new messages
-- [ ] **Dark / light theme toggle** — User-configurable appearance
+- [x] **Message reactions** — Emoji reactions on individual messages
+- [x] **File & image sharing** — Upload and preview media in chat
+- [x] **Push notifications** — Browser notifications for new messages
+- [x] **End-to-End Encryption** — Client-side AES/RSA encryption
+- [x] **WebRTC Calling** — Peer-to-peer video/audio calling
 - [ ] **Docker support** — Containerize backend and frontend
 
 ---
