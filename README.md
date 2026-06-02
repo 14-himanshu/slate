@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💬 Slate Chat
+# Slate Chat
 
 **A premium, real-time chat application built with React, TypeScript, and WebSockets.**
 
@@ -15,7 +15,7 @@ Connect instantly. Experience high-end native-feeling UI with End-to-End Encrypt
 
 ---
 
-## 📖 Description
+## Description
 
 **Slate Chat** is a high-performance, production-styled web application that enables users to communicate securely in real-time. Built on a raw WebSocket server (Node.js) and a React + Vite frontend, it provides a feature-rich experience comparable to native desktop applications like Discord or Slack.
 
@@ -23,22 +23,22 @@ Users sign up with a username and password (stored locally), join a named room, 
 
 ---
 
-## ✨ Features
+## Features
 
-- 🔐 **End-to-End Encryption** — Client-side E2EE ensuring absolute privacy for Direct Messages.
-- 📞 **WebRTC Calling** — Integrated peer-to-peer Video and Audio calls.
-- 🚪 **Room & Direct Messaging** — Join named rooms or start private 1-on-1 conversations.
-- 📌 **Pinned Messages** — Save and view important messages in a dedicated floating panel.
-- 🔕 **Mute Notifications** — Granular notification controls saved locally per-room.
-- ⚡ **Real-time Communication** — Powered by raw WebSocket (no polling).
-- 💬 **Smart Chat Bubbles** — Auto-grouping of consecutive messages with dynamic 2-minute batching.
-- 🎨 **Obsidian Dark UI** — A premium, minimalist dark theme with vibrant Indigo accents, backdrop blurs, and glassmorphism.
-- 📎 **File & Media Sharing** — Native file and image support directly in the chat stream.
-- 😀 **Message Reactions & Context Menus** — Rich interactivity with floating action toolbars.
+- **End-to-End Encryption** — Client-side E2EE ensuring absolute privacy for Direct Messages.
+- **WebRTC Calling** — Integrated peer-to-peer Video and Audio calls.
+- **Room & Direct Messaging** — Join named rooms or start private 1-on-1 conversations.
+- **Pinned Messages** — Save and view important messages in a dedicated floating panel.
+- **Mute Notifications** — Granular notification controls saved locally per-room.
+- **Real-time Communication** — Powered by raw WebSocket (no polling).
+- **Smart Chat Bubbles** — Auto-grouping of consecutive messages with dynamic 2-minute batching.
+- **Obsidian Dark UI** — A premium, minimalist dark theme with vibrant Indigo accents, backdrop blurs, and glassmorphism.
+- **File & Media Sharing** — Native file and image support directly in the chat stream.
+- **Message Reactions & Context Menus** — Rich interactivity with floating action toolbars.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 | Technology | Version | Purpose |
@@ -59,7 +59,7 @@ Users sign up with a username and password (stored locally), join a named room, 
 
 ---
 
-## 🎨 UI Overview
+## UI Overview
 
 The interface follows a strict **Obsidian Graphite** design system built entirely with CSS custom properties.
 
@@ -71,7 +71,7 @@ The interface follows a strict **Obsidian Graphite** design system built entirel
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 chat-app/
@@ -108,7 +108,7 @@ chat-app/
 
 ---
 
-## 🚀 Installation & Setup
+## Installation & Setup
 
 ### Prerequisites
 
@@ -168,7 +168,7 @@ npm run dev
 
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
 ### Backend — `backend/.env`
 
@@ -192,7 +192,7 @@ VITE_WS_URL=ws://localhost:8080
 
 ---
 
-## 📋 Usage
+## Usage
 
 ### 1. Create an Account
 
@@ -218,17 +218,17 @@ Open a second browser tab or window, sign up as a different user, and join the s
 
 ---
 
-## 🖼️ Screenshots
+## Screenshots
 
 | Auth Screen | Join Room | Chat Room |
 |---|---|---|
 | ![Auth](./screenshots/auth.png) | ![Join](./screenshots/join.png) | ![Chat](./screenshots/chat.png) |
 
-> 📸 Add screenshots to a `/screenshots` directory in the project root.
+> Add screenshots to a `/screenshots` directory in the project root.
 
 ---
 
-## 🔌 WebSocket Message Protocol
+## WebSocket Message Protocol
 
 The frontend and backend communicate via JSON messages over WebSocket.
 
@@ -281,7 +281,7 @@ The frontend and backend communicate via JSON messages over WebSocket.
 
 ---
 
-## 🔮 Future Improvements
+## Future Improvements
 
 - [ ] **Persistent storage** — Save messages to a database (PostgreSQL / MongoDB)
 - [ ] **JWT authentication** — Replace localStorage auth with a real backend API
@@ -294,7 +294,7 @@ The frontend and backend communicate via JSON messages over WebSocket.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -325,7 +325,7 @@ chore:    Build process or auxiliary tool changes
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
@@ -349,6 +349,6 @@ copies or substantial portions of the Software.
 
 <div align="center">
 
-Made with ❤️ by [Himanshu Pandey](https://github.com/your-username)
+Made with by [Himanshu Pandey](https://github.com/your-username)
 
 </div>
