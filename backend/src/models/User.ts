@@ -8,6 +8,7 @@ export interface IUser extends Document {
   avatar?: string;
   bio?: string;
   status: UserStatus;
+  publicKey?: string;
   lastSeen: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -44,6 +45,10 @@ const userSchema = new Schema<IUser>(
     lastSeen: {
       type: Date,
       default: () => new Date(),
+    },
+    publicKey: {
+      type: String,
+      default: undefined,
     },
   },
   { timestamps: true }

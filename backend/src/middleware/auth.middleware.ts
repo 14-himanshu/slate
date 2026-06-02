@@ -3,18 +3,22 @@ import { verifyToken, type TokenPayload } from "../services/auth.service.js";
 
 /**
  * Extract and verify the JWT from a WebSocket upgrade request.
- * Clients must pass the token as a query param: ?token=<jwt>
+ * Clients must pass the token in the Sec-WebSocket-Protocol header.
  * Returns the decoded payload or throws on failure.
  */
 export function authenticateWsRequest(request: IncomingMessage): TokenPayload {
-  const rawUrl = request.url ?? "/";
-  // Use a dummy base so URL can parse a relative path
-  const url = new URL(rawUrl, "http://localhost");
-  const token = url.searchParams.get("token");
-
-  if (!token) {
-    throw new Error("No token provided.");
+  const protocolHeader = request.headers["sec-websocket-protocol"];
+  
+  let token: string | undefined;
+  if (protocolHeader) {
+    // The header can be a comma-separated list if multiple protocols are sent
+    const protocols = protocolHeader.split(",").map(p => p.trim());
+    token = protocols[0];
   }
 
-  return verifyToken(token);
+  if (!token) {
+    throw new Error("No token provided in Sec-WebSocket-Protocol header.");
+  }
+
+  return verifyToken(decodeURIComponent(token));
 }

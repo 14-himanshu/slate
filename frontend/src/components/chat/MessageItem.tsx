@@ -1,0 +1,346 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Avatar, Icon, Icons } from '../ui';
+import { LinkPreview } from './LinkPreview';
+
+function formatTime(d: Date) {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+export function MessageActions({ msg, mine, onReact, onReply, onEdit, onDelete, onMoreClick, moreBtnRef }: any) {
+    const btnStyle: any = { background: 'none', border: 'none', cursor: 'pointer', color: '#8E9297', padding: '6px', display: 'flex', transition: 'color 0.2s', borderRadius: 4 };
+    const onEnter = (e: any, c = '#FFFFFF') => { e.currentTarget.style.color = c; };
+    const onLeave = (e: any) => { e.currentTarget.style.color = '#8E9297'; };
+    const divider = <div style={{ width: 1, height: 16, background: 'rgba(255, 255, 255, 0.1)', margin: '0 4px' }} />;
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(22, 25, 30, 0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.4)', padding: '4px 8px' }}>
+            <button onClick={() => onReact(msg, 'like')} title="Like" style={btnStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+            </button>
+            <button onClick={() => onReact(msg, 'heart')} title="Love" style={btnStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </button>
+            <button onClick={() => onReact(msg, 'check')} title="Check" style={btnStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>
+            {divider}
+            <button onClick={onReply} title="Reply" style={btnStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg>
+            </button>
+            {mine && msg.type === 'text' && (
+                <button onClick={onEdit} title="Edit" style={btnStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+            )}
+            {mine && (
+                <button onClick={onDelete} title="Delete" style={btnStyle} onMouseEnter={e => onEnter(e, '#EF4444')} onMouseLeave={onLeave}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                </button>
+            )}
+            {divider}
+            <button ref={moreBtnRef} onClick={onMoreClick} title="More" style={btnStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </button>
+        </div>
+    );
+}
+
+export function ContextMenuItem({ icon, label, onClick, danger }: any) {
+    const [hover, setHover] = useState(false);
+    return (
+        <button 
+            onClick={onClick}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: hover ? (danger ? 'rgba(239,68,68,0.1)' : 'var(--bg-elevated)') : 'transparent', color: danger ? '#ef4444' : 'var(--text-primary)', border: 'none', borderRadius: 6, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: 500, transition: 'background 0.1s', width: '100%' }}
+        >
+            <span style={{ display: 'flex', color: danger ? '#ef4444' : 'var(--text-secondary)' }}>{icon}</span>
+            {label}
+        </button>
+    );
+}
+
+export function MessageContextMenu({ msg, mine, onReply, onEdit, onDelete, onClose, position }: any) {
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [onClose]);
+
+    return (
+        <div 
+            style={{ 
+                position: 'fixed', 
+                top: position.top, 
+                left: position.left, 
+                right: position.right, 
+                background: 'var(--bg-surface)', 
+                border: '1px solid var(--border)', 
+                borderRadius: 6, 
+                padding: '6px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 2, 
+                minWidth: 180, 
+                zIndex: 100, 
+                boxShadow: 'var(--shadow-lg)' 
+            }} 
+            onClick={e => e.stopPropagation()}
+        >
+            <ContextMenuItem 
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg>} 
+                label="Reply" 
+                onClick={() => { onReply(msg); onClose(); }} 
+            />
+            <ContextMenuItem 
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>} 
+                label="Copy text" 
+                onClick={() => { navigator.clipboard.writeText(msg.text); onClose(); }} 
+            />
+            
+            {mine && <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />}
+            {mine && msg.type === 'text' && (
+                <ContextMenuItem 
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>} 
+                    label="Edit Message" 
+                    onClick={() => { onEdit(msg); onClose(); }} 
+                />
+            )}
+            {mine && (
+                <ContextMenuItem 
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>} 
+                    label="Delete Message" 
+                    onClick={() => { onDelete(msg); onClose(); }} 
+                    danger 
+                />
+            )}
+            
+            {!mine && <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />}
+            {!mine && (
+                <ContextMenuItem 
+                    icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>} 
+                    label="Report Message" 
+                    onClick={() => onClose()} 
+                    danger 
+                />
+            )}
+        </div>
+    );
+}
+
+export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLastInGroup = true, onReply, onEdit, onDelete, onReact, onJumpToMessage, activeMenuMessageId, setActiveMenuMessageId }: any) {
+    const [isHovered, setIsHovered] = useState(false);
+    const [menuPos, setMenuPos] = useState<{ top: number, right?: number, left?: number } | null>(null);
+    const [decryptedText, setDecryptedText] = useState<string | null>(null);
+    const [decryptedLinkPreview, setDecryptedLinkPreview] = useState<any>(null);
+    const [decryptError, setDecryptError] = useState<boolean>(false);
+    const moreBtnRef = useRef<HTMLButtonElement>(null);
+    const isMenuActive = activeMenuMessageId === msg.id;
+
+    useEffect(() => {
+        if (!isMenuActive) setMenuPos(null);
+    }, [isMenuActive]);
+
+    useEffect(() => {
+        if (msg.isE2EE && msg.e2eeData) {
+            const decrypt = async () => {
+                try {
+                    const username = localStorage.getItem('chat_username');
+                    const privKeyJwk = localStorage.getItem(`chat_privkey_${username}`);
+                    if (!privKeyJwk) throw new Error("No private key");
+                    
+                    const { importPrivateKey, decryptMessage } = await import('../../lib/e2ee');
+                    const privKey = await importPrivateKey(privKeyJwk);
+                    const role = mine ? 'sender' : 'recipient';
+                    const decrypted = await decryptMessage(msg.e2eeData, privKey, role);
+                    
+                    try {
+                        const parsed = JSON.parse(decrypted);
+                        if (parsed.text !== undefined) {
+                            setDecryptedText(parsed.text);
+                            if (parsed.linkPreview) setDecryptedLinkPreview(parsed.linkPreview);
+                        } else {
+                            setDecryptedText(decrypted);
+                        }
+                    } catch {
+                        setDecryptedText(decrypted);
+                    }
+                } catch (e) {
+                    console.error("Decryption failed", e);
+                    setDecryptError(true);
+                }
+            };
+            decrypt();
+        }
+    }, [msg.isE2EE, msg.e2eeData, mine]);
+
+    const handleMoreClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (moreBtnRef.current) {
+            const rect = moreBtnRef.current.getBoundingClientRect();
+            setMenuPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+            setActiveMenuMessageId(msg.id);
+        }
+    };
+
+    return (
+        <article
+            id={`message-${msg.id}`}
+            className="animate-fade-in"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            style={{ 
+                display: 'flex', flexDirection: mine ? 'row-reverse' : 'row', alignItems: 'flex-start', 
+                gap: 16, marginTop: hideHeader ? 4 : 16, padding: '2px 16px', 
+                position: 'relative', transition: 'background 0.1s ease', 
+                background: isHovered || isMenuActive ? 'var(--bg-hover)' : 'transparent',
+            }}
+        >
+            <div style={{ width: 40, flexShrink: 0, marginTop: hideHeader ? 0 : 2, display: 'flex', justifyContent: 'center' }}>
+                {!hideHeader && <Avatar name={msg.username} size={40} />}
+                {hideHeader && isHovered && (
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', paddingTop: 4, userSelect: 'none' }}>{formatTime(msg.timestamp)}</span>
+                )}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start', maxWidth: '100%', position: 'relative', flex: 1, minWidth: 0 }}>
+                {!hideHeader && (
+                    <div style={{ display: 'flex', flexDirection: mine ? 'row-reverse' : 'row', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: msg.username === 'System' ? 'var(--accent)' : 'var(--text-primary)', letterSpacing: '0.01em' }}>{msg.username}</span>
+                    </div>
+                )}
+                
+                <div style={{ position: 'relative', display: 'flex', width: '100%', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start' }}>
+                    {/* The Action Toolbar */}
+                    {(isHovered || isMenuActive) && !msg.deleted && (
+                        <div style={{ position: 'absolute', top: -18, right: 16, zIndex: 10, animation: 'fadeIn 0.15s ease' }}>
+                            <MessageActions msg={msg} mine={mine} onReact={onReact} onReply={() => onReply(msg)} onEdit={() => onEdit(msg)} onDelete={() => onDelete(msg)} onMoreClick={handleMoreClick} moreBtnRef={moreBtnRef} />
+                        </div>
+                    )}
+                    
+                    {/* Bubble / Text */}
+                    <div style={{
+                        padding: msg.deleted ? '0' : (msg.type === 'image' ? '4px' : '8px 16px'),
+                        background: msg.deleted ? 'transparent' : (mine ? 'var(--my-bubble)' : 'var(--their-bubble)'),
+                        color: msg.deleted ? 'var(--text-muted)' : (mine ? '#FFFFFF' : '#E3E5E8'),
+                        borderRadius: msg.deleted ? '0' : (
+                            mine 
+                                ? `16px ${isFirstInGroup ? '16px' : '4px'} ${isLastInGroup ? '16px' : '4px'} 16px`
+                                : `${isFirstInGroup ? '16px' : '4px'} 16px 16px ${isLastInGroup ? '16px' : '4px'}`
+                        ),
+                        boxShadow: msg.deleted || msg.type === 'image' ? 'none' : 'var(--shadow-sm)',
+                        fontSize: 15, lineHeight: 1.45, wordBreak: 'break-word', whiteSpace: 'pre-wrap',
+                        opacity: msg.deleted ? 0.8 : 1, fontStyle: msg.deleted ? 'italic' : 'normal'
+                    }}>
+                        {/* Reply context */}
+                        {msg.replyTo && (
+                            <div 
+                                onClick={() => {
+                                    const id = typeof msg.replyTo === 'object' ? msg.replyTo.id : msg.replyTo;
+                                    if (id) onJumpToMessage(id);
+                                }}
+                                style={{ 
+                                    padding: '4px 8px', marginBottom: 6, background: 'var(--bg-elevated)', 
+                                    borderLeft: `3px solid var(--border)`, borderRadius: 4, fontSize: 13, color: 'var(--text-secondary)',
+                                    cursor: 'pointer', transition: 'background 0.1s', display: 'flex', alignItems: 'center', gap: 8
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+                            >
+                                <Avatar name={typeof msg.replyTo === 'object' ? msg.replyTo.username : '?'} size={16} circle />
+                                <span style={{ fontWeight: 600 }}>{typeof msg.replyTo === 'object' ? msg.replyTo.username : 'Message'}</span>
+                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.8 }}>{typeof msg.replyTo === 'object' ? msg.replyTo.text : '...'}</div>
+                            </div>
+                        )}
+                        {msg.deleted ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                                <span>This message was deleted.</span>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Image message */}
+                                {msg.type === 'image' && msg.fileUrl && (
+                                    <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                                        <img src={msg.fileUrl} alt={msg.fileName ?? 'image'} style={{ display: 'block', maxWidth: '300px', maxHeight: '300px', borderRadius: 8, objectFit: 'cover', marginTop: 4, border: '1px solid var(--border)' }} />
+                                    </a>
+                                )}
+                                {/* File message */}
+                                {msg.type === 'file' && msg.fileUrl && (
+                                    <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none', color: 'inherit', marginTop: 4 }}>
+                                        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--accent)' }}>{msg.fileName ?? 'Download file'}</span>
+                                    </a>
+                                )}
+                                {/* Text caption */}
+                                {msg.text && msg.type !== 'image' && !msg.isE2EE && <span>{msg.text.split(/(@\w+)/g).map((part: string, i: number) => part.startsWith('@') ? <span key={i} style={{ color: 'var(--accent-light)', fontWeight: 600, background: 'var(--accent-bg)', padding: '0 4px', borderRadius: 4 }}>{part}</span> : part)}</span>}
+                                {msg.text && msg.type === 'image' && !msg.isE2EE && (
+                                    <p style={{ margin: '6px 0 2px', fontSize: 15 }}>{msg.text.split(/(@\w+)/g).map((part: string, i: number) => part.startsWith('@') ? <span key={i} style={{ color: 'var(--accent-light)', fontWeight: 600, background: 'var(--accent-bg)', padding: '0 4px', borderRadius: 4 }}>{part}</span> : part)}</p>
+                                )}
+                                
+                                {/* E2EE Message */}
+                                {msg.isE2EE && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--success)' }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                        <span style={{ color: 'var(--text-primary)' }}>
+                                            {decryptError ? <span style={{ fontStyle: 'italic', color: 'var(--danger)' }}>[Decryption Failed - Key Not Found]</span> : (decryptedText !== null ? decryptedText : <span style={{ fontStyle: 'italic', opacity: 0.8 }}>Decrypting...</span>)}
+                                        </span>
+                                    </div>
+                                )}
+                                {msg.edited && <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>(edited)</span>}
+
+                                {/* Link Preview */}
+                                {msg.linkPreview && !msg.isE2EE && (
+                                    <LinkPreview {...msg.linkPreview} />
+                                )}
+                                {decryptedLinkPreview && msg.isE2EE && (
+                                    <LinkPreview {...decryptedLinkPreview} />
+                                )}
+                                
+                                {/* Timestamp & Delivery Status */}
+                                <div style={{ 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, 
+                                    marginTop: 4, marginRight: -4,
+                                    fontSize: 10, color: mine ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)',
+                                    userSelect: 'none'
+                                }}>
+                                    <span>{formatTime(msg.timestamp)}</span>
+                                    {mine && (
+                                        <span style={{ display: 'flex', alignItems: 'center' }}>
+                                            {msg.status === 'sending' ? (
+                                                <Icon d={Icons.loader} size={10} style={{ animation: 'spin 1s linear infinite' }} />
+                                            ) : msg.status === 'sent' ? (
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            ) : (
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 10 11 21 6 16"></polyline></svg>
+                                            )}
+                                        </span>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Reactions */}
+                {msg.reactions && msg.reactions.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
+                        {Object.entries(msg.reactions.reduce((acc: Record<string, number>, r: any) => { acc[r.icon] = (acc[r.icon] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([icon, count]: [string, any]) => (
+                            <div key={icon} onClick={() => onReact(msg, icon)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '2px 8px', fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                                {icon === 'like' && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>}
+                                {icon === 'heart' && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>}
+                                {icon === 'check' && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                                <span style={{ fontWeight: 600 }}>{count}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            
+            {/* Context Menu */}
+            {isMenuActive && menuPos && (
+                <MessageContextMenu msg={msg} mine={mine} onReply={() => onReply(msg)} onEdit={() => onEdit(msg)} onDelete={() => onDelete(msg)} onClose={() => setActiveMenuMessageId(null)} position={menuPos} />
+            )}
+        </article>
+    );
+}

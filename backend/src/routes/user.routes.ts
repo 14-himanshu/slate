@@ -6,6 +6,8 @@ import {
   updateUser,
   uploadAvatar,
   changeUserPassword,
+  updateUserPublicKey,
+  searchUsersHandler,
 } from "../controllers/user.controller.js";
 import type { Request, Response, NextFunction } from "express";
 import type { AuthRequest } from "../middleware/requireAuth.js";
@@ -36,5 +38,8 @@ router.get("/me",              requireAuth, wrap(getMe));
 router.put("/update",          requireAuth, wrap(updateUser));
 router.post("/avatar",         requireAuth, avatarUpload.single("avatar"), wrap(uploadAvatar));
 router.post("/change-password",requireAuth, wrap(changeUserPassword));
+router.put("/me/public-key",   requireAuth, wrap(updateUserPublicKey));
+router.put("/public-key",      requireAuth, wrap(updateUserPublicKey)); // alias
+router.get("/search",          requireAuth, wrap(searchUsersHandler));
 
 export default router;
