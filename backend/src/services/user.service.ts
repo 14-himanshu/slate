@@ -70,3 +70,23 @@ export async function updateAvatar(
 export async function updateLastSeen(userId: string, status: "online" | "offline") {
   await User.findByIdAndUpdate(userId, { lastSeen: new Date(), status });
 }
+
+export async function updatePublicKey(userId: string, publicKey: string) {
+  const updated = await User.findByIdAndUpdate(
+    userId,
+    { publicKey },
+    { new: true, select: "-password" }
+  );
+  if (!updated) throw new Error("User not found.");
+  return updated;
+}
+
+export async function searchUsers(query: string, excludeUserId: string) {
+  const users = await User.find({
+    username: { $regex: query, $options: "i" },
+    _id: { $ne: excludeUserId },
+  })
+    .select("_id username avatar status")
+    .limit(20);
+  return users;
+}

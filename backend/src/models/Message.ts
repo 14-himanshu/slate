@@ -21,6 +21,12 @@ export interface IMessage extends Document {
   deleted?: boolean;
   replyTo?: mongoose.Types.ObjectId | IMessage;
   reactions?: IReaction[];
+  linkPreview?: {
+    title: string | null;
+    description: string | null;
+    image: string | null;
+    url: string;
+  };
 }
 
 const reactionSchema = new Schema<IReaction>({
@@ -41,7 +47,13 @@ const messageSchema = new Schema<IMessage>({
   edited:   { type: Boolean, default: false },
   deleted:  { type: Boolean, default: false },
   replyTo:  { type: Schema.Types.ObjectId, ref: "Message" },
-  reactions: [reactionSchema]
+  reactions: [reactionSchema],
+  linkPreview: {
+    title: String,
+    description: String,
+    image: String,
+    url: String
+  }
 });
 
 messageSchema.index({ roomId: 1, timestamp: 1 });

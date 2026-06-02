@@ -6,8 +6,8 @@ const getApiBase = () => {
   if (url) return url.endsWith('/') ? url.slice(0, -1) : url;
   
   // Robust fallback for local development
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  return isLocal ? 'http://localhost:8080' : '';
+   
+  return import.meta.env.VITE_BACKEND_URL || `http://${window.location.hostname}:8080`;
 };
 
 const API_BASE = getApiBase();
@@ -101,4 +101,72 @@ export async function login(username: string, password: string): Promise<{ token
     body: JSON.stringify({ username, password }),
   });
   return await handleResponse<{ token: string, username: string }>(res);
+}
+
+import type { DirectConversationSummary, UserSummary } from '../types';
+
+export async function searchUsers(query: string): Promise<UserSummary[]> {
+  const res = await fetch(`${API_BASE}/api/user/search?q=${encodeURIComponent(query)}`, { headers: authHeaders() });
+  const data = await handleResponse<{ users: UserSummary[] }>(res);
+  return data.users;
+}
+
+export async function updatePublicKey(publicKey: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/user/public-key`, {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ publicKey })
+  });
+  await handleResponse(res);
+}
+
+export async function fetchDirectConversations(): Promise<DirectConversationSummary[]> {
+  const res = await fetch(`${API_BASE}/api/dm/conversations`, { headers: authHeaders() });
+  const data = await handleResponse<{ conversations: DirectConversationSummary[] }>(res);
+  return data.conversations;
+}
+
+export async function createDirectConversation(userId: string): Promise<DirectConversationSummary> {
+  const res = await fetch(`${API_BASE}/api/dm/conversations`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ userId })
+  });
+  const data = await handleResponse<{ conversation: DirectConversationSummary }>(res);
+  return data.conversation;
+}
+
+export async function markDirectConversationRead(conversationId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/dm/conversations/${conversationId}/read`, {
+    method: 'POST',
+    headers: authHeaders()
+  });
+  await handleResponse(res);
+}
+
+export async function fetchLinkPreview(url: string): Promise<{ title: string | null; description: string | null; image: string | null; url: string }> {
+  const res = await fetch(`${API_BASE}/api/metadata/link-preview?url=${encodeURIComponent(url)}`, { headers: authHeaders() });
+  const data = await handleResponse<{ metadata: { title: string | null; description: string | null; image: string | null; url: string } }>(res);
+  return data.metadata;
+}
+
+import type { RoomSummary } from '../types';
+
+export async function createRoom(name: string, description?: string): Promise<RoomSummary> {
+  const res = await fetch(`${API_BASE}/api/rooms`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ name, description })
+  });
+  return await handleResponse<RoomSummary>(res);
+}
+
+export async function getRoom(roomId: string): Promise<RoomSummary> {
+  const res = await fetch(`${API_BASE}/api/rooms/${encodeURIComponent(roomId)}`, { headers: authHeaders() });
+  return await handleResponse<RoomSummary>(res);
+}
+
+export async function getUserRooms(): Promise<RoomSummary[]> {
+  const res = await fetch(`${API_BASE}/api/rooms/user`, { headers: authHeaders() });
+  return await handleResponse<RoomSummary[]>(res);
 }

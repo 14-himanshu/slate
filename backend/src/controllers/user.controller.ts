@@ -5,6 +5,7 @@ import {
   updateProfile,
   changePassword,
   updateAvatar,
+  searchUsers,
 } from "../services/user.service.js";
 
 /** GET /api/user/me */
@@ -101,5 +102,45 @@ export async function changeUserPassword(req: AuthRequest, res: Response): Promi
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Password change failed.";
     res.status(400).json({ error: msg });
+  }
+}
+
+/** PUT /api/user/me/public-key */
+export async function updateUserPublicKey(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { publicKey } = req.body as { publicKey?: string };
+    if (!publicKey) {
+      res.status(400).json({ error: "publicKey is required." });
+      return;
+    }
+    const { updatePublicKey } = await import("../services/user.service.js");
+    const user = await updatePublicKey(req.user.userId, publicKey);
+    res.json({ user });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to update public key.";
+    res.status(500).json({ error: msg });
+  }
+}
+
+/** GET /api/user/search?q=... */
+export async function searchUsersHandler(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const q = (req.query.q as string ?? "").trim();
+    if (!q || q.length < 1) {
+      res.json({ users: [] });
+      return;
+    }
+    const users = await searchUsers(q, req.user.userId);
+    res.json({
+      users: users.map(u => ({
+        id: u._id.toString(),
+        username: u.username,
+        avatar: u.avatar,
+        status: u.status,
+      }))
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Search failed.";
+    res.status(500).json({ error: msg });
   }
 }

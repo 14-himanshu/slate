@@ -3,6 +3,18 @@ import type { Server } from "http";
 import type { IncomingMessage } from "http";
 import { authenticateWsRequest } from "../middleware/auth.middleware.js";
 import { saveMessage, getRoomHistory, editMessage, deleteMessage, addReaction } from "../services/message.service.js";
+import {
+  saveDirectMessage,
+  getDirectHistory,
+  editDirectMessage,
+  deleteDirectMessage,
+  addDirectReaction
+} from "../services/direct-message.service.js";
+import {
+  ensureConversationAccess,
+  markConversationRead
+} from "../services/direct-conversation.service.js";
+import { updateLastSeen } from "../services/user.service.js";
 
 interface ConnectedUser {
   socket: WebSocket;
@@ -10,6 +22,8 @@ interface ConnectedUser {
   username: string;
   /** All rooms this socket is currently subscribed to */
   rooms: Set<string>;
+  /** All direct conversations this socket is subscribed to */
+  conversations: Set<string>;
 }
 
 let connectedUsers: ConnectedUser[] = [];
@@ -30,6 +44,21 @@ function broadcastToRoom(roomId: string, data: object): void {
     if (user.rooms.has(roomId)) {
       send(user.socket, data);
     }
+  }
+}
+
+function broadcastToConversation(conversationId: string, data: object): void {
+  for (const user of connectedUsers) {
+    if (user.conversations.has(conversationId)) {
+      send(user.socket, data);
+    }
+  }
+}
+
+function broadcastPresence(userId: string, status: "online" | "offline"): void {
+  const lastSeen = new Date().toISOString();
+  for (const user of connectedUsers) {
+    send(user.socket, { type: "presence", payload: { userId, status, lastSeen } });
   }
 }
 
@@ -61,8 +90,9 @@ export function setupWebSocketServer(httpServer: Server): void {
 
     console.log(`🔌 ${username} connected`);
 
-    const user: ConnectedUser = { socket, userId, username, rooms: new Set() };
+    const user: ConnectedUser = { socket, userId, username, rooms: new Set(), conversations: new Set() };
     connectedUsers.push(user);
+    void updateLastSeen(userId, "online").then(() => broadcastPresence(userId, "online")).catch(() => undefined);
 
     // ── Message handler ────────────────────────────────────────
     socket.on("message", async (raw) => {
@@ -100,6 +130,81 @@ export function setupWebSocketServer(httpServer: Server): void {
         return;
       }
 
+      // ── LOAD MORE ROOM HISTORY ─────────────────────────────
+      if (parsed.type === "loadMoreRoomHistory") {
+        const roomId = parsed.payload?.["roomId"]?.trim().toUpperCase();
+        const beforeString = parsed.payload?.["before"];
+        
+        if (!roomId || !user.rooms.has(roomId) || !beforeString) return;
+
+        try {
+          const beforeDate = new Date(beforeString);
+          const history = await getRoomHistory(roomId, beforeDate);
+          send(socket, { type: "historyLoaded", payload: { roomId, messages: history } });
+        } catch (err) {
+          console.error("Failed to load more room history:", err);
+        }
+        return;
+      }
+
+      // ── JOIN DIRECT CONVERSATION ───────────────────────────
+      if (parsed.type === "joinDm") {
+        const conversationId = parsed.payload?.["conversationId"];
+        const includeHistory = parsed.payload?.["includeHistory"] !== "false";
+
+        if (!conversationId) {
+          send(socket, { type: "error", payload: { message: "conversationId is required." } });
+          return;
+        }
+
+        const canAccess = await ensureConversationAccess(conversationId, userId);
+        if (!canAccess) {
+          send(socket, { type: "error", payload: { message: "Not authorized for this conversation." } });
+          return;
+        }
+
+        if (!user.conversations.has(conversationId)) {
+          user.conversations.add(conversationId);
+          console.log(`💬 ${username} joined DM ${conversationId}`);
+        }
+
+        if (includeHistory) {
+          try {
+            const history = await getDirectHistory(conversationId);
+            send(socket, { type: "dmHistory", payload: { conversationId, messages: history } });
+          } catch (err) {
+            console.error("Failed to fetch DM history:", err);
+          }
+        }
+        return;
+      }
+
+      // ── LOAD MORE DM HISTORY ─────────────────────────────
+      if (parsed.type === "loadMoreDmHistory") {
+        const conversationId = parsed.payload?.["conversationId"];
+        const beforeString = parsed.payload?.["before"];
+
+        if (!conversationId || !user.conversations.has(conversationId) || !beforeString) return;
+
+        try {
+          const beforeDate = new Date(beforeString);
+          const history = await getDirectHistory(conversationId, beforeDate);
+          send(socket, { type: "dmHistoryLoaded", payload: { conversationId, messages: history } });
+        } catch (err) {
+          console.error("Failed to load more DM history:", err);
+        }
+        return;
+      }
+
+      // ── LEAVE DIRECT CONVERSATION ───────────────────────────
+      if (parsed.type === "leaveDm") {
+        const conversationId = parsed.payload?.["conversationId"];
+        if (!conversationId || !user.conversations.has(conversationId)) return;
+        user.conversations.delete(conversationId);
+        console.log(`👋 ${username} left DM ${conversationId}`);
+        return;
+      }
+
       // ── LEAVE ROOM ─────────────────────────────────────────
       if (parsed.type === "leaveRoom") {
         const roomId = parsed.payload?.["roomId"]?.trim().toUpperCase();
@@ -111,6 +216,157 @@ export function setupWebSocketServer(httpServer: Server): void {
         return;
       }
 
+      // ── DIRECT MESSAGE ─────────────────────────────────────
+      if (parsed.type === "dmMessage") {
+        const conversationId = parsed.payload?.["conversationId"];
+        const message = parsed.payload?.["message"]?.trim() ?? "";
+        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file") ?? "text";
+        const fileUrl = parsed.payload?.["fileUrl"];
+        const fileName = parsed.payload?.["fileName"];
+        const replyTo = parsed.payload?.["replyTo"];
+        const isE2EE = parsed.payload?.["isE2EE"] === "true";
+        const e2eeDataRaw = parsed.payload?.["e2eeData"];
+        let e2eeData: { iv: string; encryptedKeySender: string; encryptedKeyRecipient: string; } | undefined;
+
+        if (isE2EE && e2eeDataRaw) {
+          try {
+            e2eeData = typeof e2eeDataRaw === 'string' ? JSON.parse(e2eeDataRaw) : e2eeDataRaw;
+          } catch (e) {
+            console.error("Invalid e2eeData");
+          }
+        }
+
+        if (!conversationId || !user.conversations.has(conversationId)) {
+          send(socket, { type: "error", payload: { message: "Join the conversation first." } });
+          return;
+        }
+
+        if (!message && !fileUrl) return;
+
+        const canAccess = await ensureConversationAccess(conversationId, userId);
+        if (!canAccess) {
+          send(socket, { type: "error", payload: { message: "Not authorized for this conversation." } });
+          return;
+        }
+
+        try {
+          const savedMessage = await saveDirectMessage(
+            conversationId,
+            userId,
+            username,
+            message || fileName || "file",
+            messageType,
+            fileUrl,
+            fileName,
+            replyTo,
+            isE2EE,
+            e2eeData
+
+          );
+          broadcastToConversation(conversationId, { type: "dmMessage", payload: savedMessage });
+        } catch (err) {
+          console.error("Failed to save DM:", err);
+          send(socket, { type: "error", payload: { message: "Failed to send direct message." } });
+        }
+        return;
+      }
+
+      // ── EDIT DIRECT MESSAGE ────────────────────────────────
+      if (parsed.type === "editDmMessage") {
+        const conversationId = parsed.payload?.["conversationId"];
+        const msgId = parsed.payload["messageId"];
+        const newText = parsed.payload["message"]?.trim();
+
+        if (conversationId && user.conversations.has(conversationId) && msgId && newText) {
+          try {
+            const updated = await editDirectMessage(msgId, userId, newText);
+            if (updated) {
+              broadcastToConversation(conversationId, { type: "dmMessageUpdated", payload: updated });
+            }
+          } catch (err) {
+            console.error("Failed to edit DM:", err);
+          }
+        }
+        return;
+      }
+
+      // ── DELETE DIRECT MESSAGE ──────────────────────────────
+      if (parsed.type === "deleteDmMessage") {
+        const conversationId = parsed.payload?.["conversationId"];
+        const msgId = parsed.payload["messageId"];
+
+        if (conversationId && user.conversations.has(conversationId) && msgId) {
+          try {
+            const updated = await deleteDirectMessage(msgId, userId);
+            if (updated) {
+              broadcastToConversation(conversationId, { type: "dmMessageUpdated", payload: updated });
+            }
+          } catch (err) {
+            console.error("Failed to delete DM:", err);
+          }
+        }
+        return;
+      }
+
+      // ── REACT DIRECT MESSAGE ───────────────────────────────
+      if (parsed.type === "reactDmMessage") {
+        const conversationId = parsed.payload?.["conversationId"];
+        const msgId = parsed.payload["messageId"];
+        const icon = parsed.payload["icon"];
+
+        if (conversationId && user.conversations.has(conversationId) && msgId && icon) {
+          try {
+            const mongoose = (await import("mongoose")).default;
+            const updated = await addDirectReaction(
+              msgId,
+              new mongoose.Types.ObjectId(userId),
+              username,
+              icon
+            );
+            if (updated) {
+              broadcastToConversation(conversationId, { type: "dmMessageUpdated", payload: updated });
+            }
+          } catch (err) {
+            console.error("Failed to react to DM:", err);
+          }
+        }
+        return;
+      }
+
+      // ── DM TYPING ───────────────────────────────────────────
+      if (parsed.type === "dmTyping") {
+        const conversationId = parsed.payload?.["conversationId"];
+        const isTyping = parsed.payload["isTyping"] === "true";
+        if (conversationId && user.conversations.has(conversationId)) {
+          broadcastToConversation(conversationId, { type: "dmTyping", payload: { conversationId, username, isTyping } });
+        }
+        return;
+      }
+
+      // ── WEBRTC SIGNALING ────────────────────────────────────
+      if (parsed.type === "webrtc_signal") {
+        const conversationId = parsed.payload?.["conversationId"];
+        const signalType = parsed.payload?.["signalType"];
+        const data = parsed.payload?.["data"];
+        if (conversationId && user.conversations.has(conversationId)) {
+          broadcastToConversation(conversationId, { 
+            type: "webrtc_signal", 
+            payload: { conversationId, senderId: userId, senderUsername: username, signalType, data } 
+          });
+        }
+        return;
+      }
+
+      // ── DM READ ─────────────────────────────────────────────
+      if (parsed.type === "dmRead") {
+        const conversationId = parsed.payload?.["conversationId"];
+        if (conversationId && user.conversations.has(conversationId)) {
+          await markConversationRead(conversationId, userId);
+          broadcastToConversation(conversationId, { type: "dmRead", payload: { conversationId, userId } });
+        }
+        return;
+      }
+
       // ── CHAT ───────────────────────────────────────────────
       if (parsed.type === "chat") {
         const roomId      = parsed.payload?.["roomId"]?.trim().toUpperCase();
@@ -119,16 +375,30 @@ export function setupWebSocketServer(httpServer: Server): void {
         const fileUrl     = parsed.payload?.["fileUrl"];
         const fileName    = parsed.payload?.["fileName"];
         const replyTo     = parsed.payload?.["replyTo"];
+        const linkPreviewRaw = parsed.payload?.["linkPreview"];
+        let linkPreview: { title: string | null; description: string | null; image: string | null; url: string; } | undefined;
+
+        if (linkPreviewRaw) {
+          try {
+            linkPreview = typeof linkPreviewRaw === 'string' ? JSON.parse(linkPreviewRaw) : linkPreviewRaw;
+            console.log("Parsed Link Preview:", linkPreview);
+          } catch (e) {
+            console.error("Invalid linkPreview", e);
+          }
+        } else {
+          console.log("No linkPreview received in payload");
+        }
 
         if (!roomId || !user.rooms.has(roomId)) {
           send(socket, { type: "error", payload: { message: "Join the room first." } });
           return;
         }
+
         // Must have text OR a file
         if (!message && !fileUrl) return;
 
         try {
-          const savedMessage = await saveMessage(roomId, userId, username, message || fileName || "file", messageType, fileUrl, fileName, replyTo);
+          const savedMessage = await saveMessage(roomId, userId, username, message || fileName || "file", messageType, fileUrl, fileName, replyTo, linkPreview);
           // Broadcast the fully populated message
           broadcastToRoom(roomId, {
             type:    "chat",
@@ -219,6 +489,7 @@ export function setupWebSocketServer(httpServer: Server): void {
       connectedUsers = connectedUsers.filter((u) => u.socket !== socket);
       console.log(`🔌 ${username} disconnected (was in: ${rooms.join(", ") || "none"})`);
       for (const roomId of rooms) broadcastUserCount(roomId);
+      void updateLastSeen(userId, "offline").then(() => broadcastPresence(userId, "offline")).catch(() => undefined);
     });
 
     socket.on("error", (err) => {

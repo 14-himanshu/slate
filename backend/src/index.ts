@@ -5,7 +5,10 @@ import cors from "cors";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
-import userRoutes   from "./routes/user.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import dmRoutes from "./routes/dm.routes.js";
+import metadataRoutes from "./routes/metadata.routes.js";
+import roomRoutes from "./routes/room.routes.js";
 import { setupWebSocketServer } from "./ws/handler.js";
 
 const PORT = process.env["PORT"] ? parseInt(process.env["PORT"]) : 8080;
@@ -30,7 +33,7 @@ async function main(): Promise<void> {
       const isAllowed =
         allowedOrigins.includes(origin) ||
         /^https:\/\/.*\.vercel\.app$/.test(origin) || // More permissive for Vercel
-        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+        /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin);
 
       if (isAllowed) {
         callback(null, true);
@@ -55,9 +58,12 @@ async function main(): Promise<void> {
   });
 
   // REST routes
-  app.use("/api/auth",   authRoutes);
+  app.use("/api/auth", authRoutes);
   app.use("/api/upload", uploadRoutes);
-  app.use("/api/user",   userRoutes);
+  app.use("/api/user", userRoutes);
+  app.use("/api/dm", dmRoutes);
+  app.use("/api/metadata", metadataRoutes);
+  app.use("/api/rooms", roomRoutes);
 
   // ── HTTP server (shared by Express + WS) ────────────────────
   const httpServer = http.createServer(app);
@@ -71,6 +77,7 @@ async function main(): Promise<void> {
     console.log(`   REST  → http://localhost:${PORT}/api/auth`);
     console.log(`   REST  → http://localhost:${PORT}/api/upload`);
     console.log(`   REST  → http://localhost:${PORT}/api/user`);
+    console.log(`   REST  → http://localhost:${PORT}/api/dm`);
     console.log(`   WS    → ws://localhost:${PORT}?token=<jwt>`);
   });
 }

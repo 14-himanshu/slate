@@ -19,6 +19,12 @@ export interface SerializedMessage {
   deleted?: boolean;
   replyTo?: string | SerializedMessage;
   reactions?: IReaction[];
+  linkPreview?: {
+    title: string | null;
+    description: string | null;
+    image: string | null;
+    url: string;
+  };
 }
 
 /** Persist a chat message (text or file) to the database */
@@ -30,23 +36,27 @@ export async function saveMessage(
   type: MessageType = "text",
   fileUrl?: string,
   fileName?: string,
-  replyTo?: string
+  replyTo?: string,
+  linkPreview?: { title: string | null; description: string | null; image: string | null; url: string; }
 ): Promise<SerializedMessage> {
   const payload: any = { roomId, userId, username, message, type };
   if (fileUrl) payload.fileUrl = fileUrl;
   if (fileName) payload.fileName = fileName;
   if (replyTo) payload.replyTo = new mongoose.Types.ObjectId(replyTo);
+  if (linkPreview) payload.linkPreview = linkPreview;
 
   const doc = await Message.create(payload);
   return serialize(doc);
 }
 
-/** Fetch the most recent N messages for a room (chronological order) */
-export async function getRoomHistory(roomId: string): Promise<SerializedMessage[]> {
-  const docs = await Message.find({ roomId })
+export async function getRoomHistory(roomId: string, before?: Date, limit: number = HISTORY_LIMIT): Promise<SerializedMessage[]> {
+  const query: Record<string, unknown> = { roomId };
+  if (before) query["timestamp"] = { $lt: before };
+
+  const docs = await Message.find(query)
     .populate("replyTo")
     .sort({ timestamp: -1 })
-    .limit(HISTORY_LIMIT)
+    .limit(limit)
     .lean();
   return docs.reverse().map(serialize);
 }
@@ -107,6 +117,7 @@ function serialize(doc: any): SerializedMessage {
     ...(doc.reactions?.length ? { reactions: doc.reactions } : {}),
     ...(doc.fileUrl  ? { fileUrl:  doc.fileUrl }  : {}),
     ...(doc.fileName ? { fileName: doc.fileName } : {}),
+    ...(doc.linkPreview ? { linkPreview: doc.linkPreview } : {}),
   };
 
   return payload;
