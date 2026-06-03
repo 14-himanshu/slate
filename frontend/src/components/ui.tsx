@@ -345,18 +345,16 @@ export function Badge({ count, max = 99 }: { count: number; max?: number }) {
 /* ─── BrandMark ─────────────────────────────────────────────── */
 export function BrandMark({ size = 32 }: { size?: number }) {
     return (
-        <div style={{
-            width: size, height: size,
-            borderRadius: size * 0.28,
-            background: 'var(--accent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: '0 2px 8px rgba(79,110,247,0.3)',
-        }}>
-            <svg width={size * 0.58} height={size * 0.58} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" />
-            </svg>
-        </div>
+        <img 
+            src="/logo.png" 
+            alt="Slate Logo" 
+            style={{
+                width: size, 
+                height: size,
+                objectFit: 'contain',
+                flexShrink: 0
+            }} 
+        />
     );
 }
 
