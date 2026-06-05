@@ -89,47 +89,51 @@ export function Sidebar({
             background: 'var(--bg-sidebar)',
             height: '100%',
             overflow: 'hidden',
+            borderRight: '1px solid var(--border)',
         }}>
             {/* ── Brand bar ──────────────────────────────── */}
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '0 16px',
+                padding: '0 20px',
                 height: 56,
-                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                borderBottom: '1px solid var(--border)',
                 flexShrink: 0,
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', height: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: '100%' }}>
                     <BrandMark size={28} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: '100%' }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Slate</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Slate</div>
                     </div>
                 </div>
             </div>
 
             {/* ── Global search ───────────────────────────── */}
-            <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+            <div style={{ padding: '12px 16px', flexShrink: 0 }}>
                 <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none', display: 'flex' }}>
-                        <Icon d={Icons.search} size={13} />
+                    <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none', display: 'flex' }}>
+                        <Icon d={Icons.search} size={14} />
                     </span>
                     <input
                         type="text"
-                        placeholder="Search…"
+                        placeholder="Search rooms or DMs…"
                         value={globalSearch}
                         onChange={e => setGlobalSearch(e.target.value)}
                         style={{
-                            width: '100%', height: 32,
-                            background: 'var(--bg-input)',
-                            border: 'none',
-                            borderRadius: 4,
-                            padding: '0 10px 0 30px',
+                            width: '100%', height: 36,
+                            background: 'var(--bg-surface)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '0 12px 0 34px',
                             fontSize: 13,
                             color: 'var(--text-primary)',
                             outline: 'none',
+                            transition: 'all 0.2s ease',
                         }}
+                        onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-glow)'; }}
+                        onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                     {globalSearch && (
-                        <button onClick={() => setGlobalSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 2 }}>
+                        <button onClick={() => setGlobalSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: 2 }}>
                             <Icon d={Icons.x} size={12} />
                         </button>
                     )}
@@ -137,19 +141,19 @@ export function Sidebar({
             </div>
 
             {/* ── Scrollable content ──────────────────────── */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px 0' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 16px' }}>
 
                 {/* ROOMS section */}
-                <div style={{ marginBottom: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 4px' }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>Rooms</span>
+                <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Rooms</span>
                         <IconButton label="Join or create a room" size="sm" onClick={() => setShowRoomModal(true)}>
                             <Icon d={Icons.plus} size={13} />
                         </IconButton>
                     </div>
 
                     {filteredRooms.length === 0 && (
-                        <div style={{ padding: '6px 8px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
+                        <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             {joinedRooms.length === 0 ? 'No rooms joined yet.' : 'No results.'}
                         </div>
                     )}
@@ -166,19 +170,26 @@ export function Sidebar({
                                 onClick={() => onSwitch(room.roomId)}
                                 style={{
                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    padding: '6px 10px',
-                                    borderRadius: 4,
+                                    padding: '8px 12px',
+                                    borderRadius: 'var(--radius-md)',
                                     cursor: 'pointer',
-                                    marginBottom: 2,
+                                    marginBottom: 4,
                                     background: active ? 'var(--accent-bg)' : hovered ? 'var(--bg-hover)' : 'transparent',
-                                    transition: 'background 0.1s',
+                                    transition: 'all 0.15s ease',
+                                    position: 'relative',
                                 }}
                             >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-muted)', flexShrink: 0 }}>#</span>
+                                {active && (
+                                    <div style={{
+                                        position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3,
+                                        background: 'var(--accent)', borderRadius: '0 4px 4px 0'
+                                    }} />
+                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-muted)', flexShrink: 0 }}>#</span>
                                     <span style={{
                                         fontSize: 13,
-                                        fontWeight: unread > 0 ? 600 : active ? 600 : 400,
+                                        fontWeight: unread > 0 ? 600 : active ? 600 : 500,
                                         color: active ? 'var(--accent)' : unread > 0 ? 'var(--text-primary)' : 'var(--text-secondary)',
                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                         letterSpacing: '-0.01em',
@@ -193,8 +204,8 @@ export function Sidebar({
                                             onClick={e => { e.stopPropagation(); onLeave(room.roomId); }}
                                             title="Leave room"
                                             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 3, borderRadius: 4, display: 'flex' }}
-                                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.background = 'var(--danger-bg)'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}
+                                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--danger)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                                         >
                                             <Icon d={Icons.x} size={12} />
                                         </button>
@@ -206,22 +217,22 @@ export function Sidebar({
                 </div>
 
                 {/* DIRECT MESSAGES section */}
-                <div style={{ marginTop: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 4px', borderTop: '1px solid var(--border-subtle)', marginTop: 4, paddingTop: 12 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>Direct Messages</span>
+                <div style={{ marginTop: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Direct Messages</span>
                     </div>
 
                     {/* DM Search Results */}
                     {globalSearch && (
-                        <div style={{ padding: '4px 8px', marginBottom: 8 }}>
+                        <div style={{ padding: '4px 0', marginBottom: 8 }}>
                             {dmSearching && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', fontSize: 12, color: 'var(--text-muted)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', fontSize: 12, color: 'var(--text-muted)' }}>
                                     <Icon d={Icons.loader} size={12} style={{ animation: 'spin 1s linear infinite' }} />
                                     Searching users…
                                 </div>
                             )}
                             {!dmSearching && dmResults.length === 0 && (
-                                <p style={{ fontSize: 12, color: 'var(--text-muted)', padding: '4px 4px' }}>No users found for "{globalSearch}".</p>
+                                <p style={{ fontSize: 12, color: 'var(--text-muted)', padding: '6px 8px' }}>No users found.</p>
                             )}
                             {dmResults.map(user => (
                                 <button
@@ -229,14 +240,15 @@ export function Sidebar({
                                     onClick={() => { onStartConversation(user.id); setGlobalSearch(''); }}
                                     style={{
                                         width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                                        padding: '6px 10px', marginBottom: 2,
-                                        borderRadius: 4,
+                                        padding: '8px 12px', marginBottom: 4,
+                                        borderRadius: 'var(--radius-md)',
                                         background: 'transparent',
                                         border: 'none',
                                         color: 'var(--text-primary)',
                                         cursor: 'pointer',
                                         fontFamily: 'inherit',
                                         textAlign: 'left',
+                                        transition: 'all 0.15s ease',
                                     }}
                                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
                                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
@@ -255,7 +267,7 @@ export function Sidebar({
                     )}
 
                     {filteredConvos.length === 0 && (
-                        <div style={{ padding: '8px 8px 4px', fontSize: 12, color: 'var(--text-muted)' }}>
+                        <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             {directConversations.length === 0 ? 'No conversations yet.' : 'No results.'}
                         </div>
                     )}
@@ -265,28 +277,36 @@ export function Sidebar({
                         const unread = convo.unreadCount ?? 0;
                         const preview = getLastMessagePreview(convo, currentUser);
                         const ts = formatTime(convo.lastMessageAt ?? convo.lastMessage?.timestamp);
+                        const hovered = hoveredDm === convo.id;
                         return (
                             <div
                                 key={convo.id}
                                 onClick={() => onSelectConversation(convo.id)}
                                 style={{
-                                    display: 'flex', alignItems: 'center', gap: 10,
-                                    padding: '6px 10px',
-                                    borderRadius: 4,
+                                    display: 'flex', alignItems: 'center', gap: 12,
+                                    padding: '8px 12px',
+                                    borderRadius: 'var(--radius-md)',
                                     cursor: 'pointer',
-                                    marginBottom: 2,
-                                    background: 'transparent',
-                                    border: 'none',
+                                    marginBottom: 4,
+                                    background: active ? 'var(--accent-bg)' : hovered ? 'var(--bg-hover)' : 'transparent',
+                                    transition: 'all 0.15s ease',
+                                    position: 'relative',
                                 }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; setHoveredDm(convo.id); }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; setHoveredDm(null); }}
+                                onMouseEnter={() => setHoveredDm(convo.id)}
+                                onMouseLeave={() => setHoveredDm(null)}
                             >
+                                {active && (
+                                    <div style={{
+                                        position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3,
+                                        background: 'var(--accent)', borderRadius: '0 4px 4px 0'
+                                    }} />
+                                )}
                                 <div style={{ position: 'relative', flexShrink: 0 }}>
                                     <Avatar name={convo.user.username} size={32} circle />
                                     <span style={{
                                         position: 'absolute', bottom: 0, right: 0,
-                                        width: 9, height: 9, borderRadius: '50%',
-                                        background: convo.user.status === 'online' ? 'var(--success)' : 'var(--offline)',
+                                        width: 10, height: 10, borderRadius: '50%',
+                                        background: convo.user.status === 'online' ? 'var(--success)' : 'var(--text-muted)',
                                         border: '2px solid var(--bg-sidebar)',
                                     }} />
                                 </div>
@@ -312,8 +332,8 @@ export function Sidebar({
                                         {preview}
                                     </div>
                                 </div>
-                                {unread > 0 && hoveredDm !== convo.id && <Badge count={unread} />}
-                                {hoveredDm === convo.id && (
+                                {unread > 0 && !hovered && <Badge count={unread} />}
+                                {hovered && (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -321,8 +341,8 @@ export function Sidebar({
                                         }}
                                         title="Dismiss chat"
                                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 3, borderRadius: 4, display: 'flex' }}
-                                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}
+                                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
                                     >
                                         <Icon d={Icons.x} size={12} />
                                     </button>
@@ -331,8 +351,6 @@ export function Sidebar({
                         );
                     })}
                 </div>
-
-
 
                 <div style={{ height: 16 }} />
             </div>

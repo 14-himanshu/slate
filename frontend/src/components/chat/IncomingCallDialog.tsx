@@ -2,11 +2,12 @@ import { Avatar, Icon, Icons } from '../ui';
 
 interface IncomingCallDialogProps {
   callerUsername: string | null;
+  isVideoCall?: boolean;
   onAccept: (video: boolean) => void;
   onDecline: () => void;
 }
 
-export function IncomingCallDialog({ callerUsername, onAccept, onDecline }: IncomingCallDialogProps) {
+export function IncomingCallDialog({ callerUsername, isVideoCall = true, onAccept, onDecline }: IncomingCallDialogProps) {
   if (!callerUsername) return null;
 
   return (
@@ -45,7 +46,7 @@ export function IncomingCallDialog({ callerUsername, onAccept, onDecline }: Inco
               {callerUsername}
             </h3>
             <p style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 500, margin: '2px 0 0 0' }}>
-              Incoming video call...
+              {isVideoCall ? 'Incoming video call...' : 'Incoming audio call...'}
             </p>
           </div>
         </div>
@@ -70,9 +71,9 @@ export function IncomingCallDialog({ callerUsername, onAccept, onDecline }: Inco
             <Icon d={Icons.phoneOff} size={20} color="currentColor" />
           </button>
 
-          {/* Accept video */}
+          {/* Accept */}
           <button
-            onClick={() => onAccept(true)}
+            onClick={() => onAccept(isVideoCall)}
             title="Accept"
             style={{
               width: 44, height: 44, borderRadius: '50%', border: '1px solid var(--border)', cursor: 'pointer',
@@ -85,7 +86,7 @@ export function IncomingCallDialog({ callerUsername, onAccept, onDecline }: Inco
             onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.background = 'var(--success)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = '1px solid var(--success)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.border = '1px solid var(--border)'; }}
           >
-            <Icon d={Icons.video} size={20} color="currentColor" />
+            <Icon d={isVideoCall ? Icons.video : Icons.phone} size={20} color="currentColor" />
           </button>
         </div>
 

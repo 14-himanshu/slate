@@ -222,7 +222,7 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                     <div style={{
                         padding: msg.deleted ? '0' : (msg.type === 'image' ? '4px' : '8px 16px'),
                         background: msg.deleted ? 'transparent' : (mine ? 'var(--my-bubble)' : 'var(--their-bubble)'),
-                        color: msg.deleted ? 'var(--text-muted)' : (mine ? '#FFFFFF' : '#E3E5E8'),
+                        color: msg.deleted ? 'var(--text-muted)' : (mine ? '#FFFFFF' : 'var(--text-primary)'),
                         borderRadius: msg.deleted ? '0' : (
                             mine 
                                 ? `16px ${isFirstInGroup ? '16px' : '4px'} ${isLastInGroup ? '16px' : '4px'} 16px`

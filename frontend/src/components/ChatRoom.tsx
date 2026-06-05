@@ -215,7 +215,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
             {/* Main area */}
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
                 {/* Header */}
-                <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 56, background: 'var(--bg-surface)', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', flexShrink: 0, gap: 12 }}>
+                <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 56, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', flexShrink: 0, gap: 12 }}>
                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         {isDirect ? (
                             activeConversation ? (
@@ -281,7 +281,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                                         onChange={e => setMessageSearchQuery(e.target.value)}
                                         style={{
                                             width: 180, height: 32,
-                                            background: '#111317',
+                                            background: 'var(--bg-input)',
                                             border: '1px solid var(--border)',
                                             borderRadius: 8,
                                             padding: '0 12px 0 28px',
@@ -342,7 +342,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                 </header>
 
                 {/* Messages */}
-                <main style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollBehavior: 'smooth', position: 'relative' }}>
+                <main style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollBehavior: 'smooth', position: 'relative', background: 'var(--bg-base)' }}>
                     <div style={{ maxWidth: 780, width: '100%', margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
                         {isSelectionMissing ? (isDirect ? <NoConversationSelected /> : <NoRoomSelected />) : (
                             filteredMessages.length === 0 && messageSearchQuery ? (
