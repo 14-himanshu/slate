@@ -26,7 +26,7 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef       = useRef<HTMLInputElement>(null);
   const [inputValue,   setInputValue]  = useState('');
-  const { theme } = useTheme();
+  useTheme();
 
   // ── Logout ────────────────────────────────────────────────────
   const handleLogout = useCallback(() => {
