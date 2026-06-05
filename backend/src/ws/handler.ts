@@ -15,6 +15,7 @@ import {
   markConversationRead
 } from "../services/direct-conversation.service.js";
 import { updateLastSeen } from "../services/user.service.js";
+import { DirectConversation } from "../models/DirectConversation.js";
 
 interface ConnectedUser {
   socket: WebSocket;
@@ -47,11 +48,18 @@ function broadcastToRoom(roomId: string, data: object): void {
   }
 }
 
-function broadcastToConversation(conversationId: string, data: object): void {
-  for (const user of connectedUsers) {
-    if (user.conversations.has(conversationId)) {
-      send(user.socket, data);
+async function broadcastToConversation(conversationId: string, data: object): Promise<void> {
+  try {
+    const conversation = await DirectConversation.findById(conversationId);
+    if (!conversation) return;
+    const participantIds = conversation.participants.map(p => p.toString());
+    for (const user of connectedUsers) {
+      if (participantIds.includes(user.userId)) {
+        send(user.socket, data);
+      }
     }
+  } catch (err) {
+    console.error("Failed to broadcast to conversation:", err);
   }
 }
 

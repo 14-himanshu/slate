@@ -8,6 +8,7 @@ import { CallModal } from './components/chat/CallModal';
 import { IncomingCallDialog } from './components/chat/IncomingCallDialog';
 import { useChat } from './hooks/useChat';
 import { searchUsers } from './lib/api';
+import { useTheme } from './contexts/ThemeContext';
 
 // ── Restore session ────────────────────────────────────────────
 const storedToken    = localStorage.getItem('chat_token');
@@ -25,12 +26,7 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef       = useRef<HTMLInputElement>(null);
   const [inputValue,   setInputValue]  = useState('');
-  const [isDarkMode] = useState(() => localStorage.getItem('chat_theme') === 'dark');
-
-  useEffect(() => {
-    document.documentElement.className = isDarkMode ? 'dark' : 'light';
-    localStorage.setItem('chat_theme', isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
+  const { theme } = useTheme();
 
   // ── Logout ────────────────────────────────────────────────────
   const handleLogout = useCallback(() => {
@@ -234,6 +230,7 @@ function App() {
         {webRTC.isReceivingCall && (
           <IncomingCallDialog 
             callerUsername={webRTC.callerUsername}
+            isVideoCall={webRTC.isVideoCall}
             onAccept={webRTC.acceptCall}
             onDecline={webRTC.rejectCall}
           />

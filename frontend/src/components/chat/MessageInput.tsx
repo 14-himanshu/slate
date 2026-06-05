@@ -75,7 +75,7 @@ export function MessageInput({
         : 'Write a message…';
 
     return (
-        <footer style={{ padding: '0 16px 14px', background: 'var(--bg-surface)', flexShrink: 0 }}>
+        <footer style={{ padding: '0 16px 14px', background: 'var(--bg-base)', flexShrink: 0 }}>
             {/* Typing indicator zone directly above input */}
             <div style={{ height: 20, display: 'flex', alignItems: 'center', marginBottom: 2, paddingLeft: 8 }}>
                 {activeTypingUsers.length > 0 && (

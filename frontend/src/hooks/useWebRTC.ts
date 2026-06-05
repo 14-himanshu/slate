@@ -7,6 +7,9 @@ export interface WebRTCState {
   isReceivingCall: boolean;
   activeConversationId: string | null;
   callerUsername: string | null;
+  isVideoCall: boolean;
+  isAudioMuted: boolean;
+  isVideoOff: boolean;
 }
 
 export function useWebRTC(
@@ -18,15 +21,38 @@ export function useWebRTC(
     isCalling: false,
     isReceivingCall: false,
     activeConversationId: null,
-    callerUsername: null
+    callerUsername: null,
+    isVideoCall: true,
+    isAudioMuted: false,
+    isVideoOff: false
   });
 
   const peerConnection = useRef<RTCPeerConnection | null>(null);
 
   const startMedia = async (video: boolean) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
-      setState(s => ({ ...s, localStream: stream }));
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        if (!video) {
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            videoTrack.enabled = false;
+          }
+        }
+      } catch (err) {
+        if (!video) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+        } else {
+          throw err;
+        }
+      }
+      setState(s => ({
+        ...s,
+        localStream: stream,
+        isAudioMuted: stream.getAudioTracks()[0] ? !stream.getAudioTracks()[0].enabled : false,
+        isVideoOff: stream.getVideoTracks()[0] ? !stream.getVideoTracks()[0].enabled : true
+      }));
       return stream;
     } catch (err) {
       console.error('Failed to access media devices.', err);
@@ -66,7 +92,14 @@ export function useWebRTC(
     const stream = await startMedia(video);
     if (!stream) return;
 
-    setState(s => ({ ...s, isCalling: true, activeConversationId: conversationId }));
+    setState(s => ({ 
+      ...s, 
+      isCalling: true, 
+      activeConversationId: conversationId,
+      isVideoCall: video,
+      isAudioMuted: stream.getAudioTracks()[0] ? !stream.getAudioTracks()[0].enabled : false,
+      isVideoOff: stream.getVideoTracks()[0] ? !stream.getVideoTracks()[0].enabled : true
+    }));
     const pc = createPeerConnection(conversationId);
     
     stream.getTracks().forEach(track => pc.addTrack(track, stream));
@@ -74,11 +107,20 @@ export function useWebRTC(
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     
-    sendSignal(conversationId, 'callOffer', offer);
+    sendSignal(conversationId, 'callOffer', { offer, isVideoCall: video });
   };
 
-  const handleIncomingCall = (conversationId: string, callerName: string, offer: RTCSessionDescriptionInit) => {
-    setState(s => ({ ...s, isReceivingCall: true, activeConversationId: conversationId, callerUsername: callerName }));
+  const handleIncomingCall = (conversationId: string, callerName: string, offerData: any) => {
+    const offer = offerData?.offer || offerData;
+    const isVideoCall = offerData?.isVideoCall !== undefined ? offerData.isVideoCall : true;
+
+    setState(s => ({ 
+      ...s, 
+      isReceivingCall: true, 
+      activeConversationId: conversationId, 
+      callerUsername: callerName,
+      isVideoCall
+    }));
     // We store the offer in a ref to use it when accepting
     window._pendingWebRTCOffer = offer; 
   };
@@ -89,7 +131,13 @@ export function useWebRTC(
     const stream = await startMedia(video);
     if (!stream) return;
 
-    setState(s => ({ ...s, isReceivingCall: false, isCalling: true }));
+    setState(s => ({ 
+      ...s, 
+      isReceivingCall: false, 
+      isCalling: true,
+      isAudioMuted: stream.getAudioTracks()[0] ? !stream.getAudioTracks()[0].enabled : false,
+      isVideoOff: stream.getVideoTracks()[0] ? !stream.getVideoTracks()[0].enabled : true
+    }));
     const pc = createPeerConnection(state.activeConversationId);
     
     stream.getTracks().forEach(track => pc.addTrack(track, stream));
@@ -143,7 +191,10 @@ export function useWebRTC(
       isCalling: false,
       isReceivingCall: false,
       activeConversationId: null,
-      callerUsername: null
+      callerUsername: null,
+      isVideoCall: true,
+      isAudioMuted: false,
+      isVideoOff: false
     });
   };
 
@@ -161,7 +212,10 @@ export function useWebRTC(
       isCalling: false,
       isReceivingCall: false,
       activeConversationId: null,
-      callerUsername: null
+      callerUsername: null,
+      isVideoCall: true,
+      isAudioMuted: false,
+      isVideoOff: false
     });
   };
 
@@ -170,7 +224,7 @@ export function useWebRTC(
       const audioTrack = state.localStream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
-        setState(s => ({ ...s }));
+        setState(s => ({ ...s, isAudioMuted: !audioTrack.enabled }));
       }
     }
   };
@@ -180,7 +234,7 @@ export function useWebRTC(
       const videoTrack = state.localStream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
-        setState(s => ({ ...s }));
+        setState(s => ({ ...s, isVideoOff: !videoTrack.enabled }));
       }
     }
   };
@@ -196,9 +250,7 @@ export function useWebRTC(
     handleIceCandidate,
     handleEndCallSignal,
     toggleMute,
-    toggleVideo,
-    isAudioMuted: state.localStream ? !state.localStream.getAudioTracks()[0]?.enabled : false,
-    isVideoOff: state.localStream ? !state.localStream.getVideoTracks()[0]?.enabled : false
+    toggleVideo
   };
 }
 

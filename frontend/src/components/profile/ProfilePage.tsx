@@ -25,14 +25,6 @@ interface Toast {
   type: 'success' | 'error';
 }
 
-type TabType = 'profile' | 'settings' | 'security';
-
-const TABS: { key: TabType; label: string; icon: string }[] = [
-  { key: 'profile',  label: 'Profile',  icon: Icons.user },
-  { key: 'settings', label: 'Settings', icon: Icons.settings },
-  { key: 'security', label: 'Security', icon: Icons.shield },
-];
-
 export default function ProfilePage({
   joinedRooms, messageCount, onClose, onLogout, onUsernameChange,
 }: Props) {
@@ -40,7 +32,6 @@ export default function ProfilePage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [activeTab, setActiveTab] = useState<TabType>('profile');
 
   const { theme, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState(() => localStorage.getItem('chat_notifications') === 'true');
@@ -156,84 +147,50 @@ export default function ProfilePage({
             <div style={{ flex: 1, overflowY: 'auto' }}>
               <ProfileHeader profile={profile} messageCount={messageCount} roomCount={joinedRooms.length} />
 
-              {/* Tabs */}
-              <div style={{ display: 'flex', gap: 4, padding: '12px 12px 0', borderBottom: '1px solid var(--border)', background: 'var(--bg-sidebar)', position: 'sticky', top: 0, zIndex: 10 }}>
-                {TABS.map(tab => {
-                  const isActive = activeTab === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      style={{
-                        flex: 1, padding: '8px 4px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        background: isActive ? 'var(--bg-surface)' : 'transparent',
-                        border: isActive ? '1px solid var(--border)' : '1px solid transparent',
-                        borderRadius: '8px 8px 0 0',
-                        borderBottom: isActive ? '1px solid var(--bg-surface)' : '1px solid transparent',
-                        color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
-                        fontSize: 12, fontWeight: isActive ? 600 : 400,
-                        cursor: 'pointer', fontFamily: 'inherit',
-                        letterSpacing: '-0.01em',
-                        transition: 'all 0.12s',
-                        marginBottom: -1,
-                      }}
-                    >
-                      <Icon d={tab.icon} size={13} color={isActive ? 'var(--accent)' : 'var(--text-muted)'} />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <div style={{ padding: '0 20px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {/* Profile detail controls */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <AvatarUpload profile={profile} onUpdate={handleUpdate} onToast={addToast} />
+                  <ProfileForm profile={profile} onUpdate={handleUpdate} onToast={addToast} />
+                </div>
 
-              <div style={{ padding: '20px 20px 32px' }}>
+                <div style={{ height: 1, background: 'var(--border)' }} />
 
-                {/* PROFILE TAB */}
-                {activeTab === 'profile' && (
-                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                    <AvatarUpload profile={profile} onUpdate={handleUpdate} onToast={addToast} />
-                    <div style={{ height: 1, background: 'var(--border)' }} />
-                    <ProfileForm profile={profile} onUpdate={handleUpdate} onToast={addToast} />
-                  </div>
-                )}
+                {/* Preferences */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 4 }}>Preferences</p>
 
-                {/* SETTINGS TAB */}
-                {activeTab === 'settings' && (
-                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 4 }}>Preferences</p>
+                  <SettingRow
+                    icon={<Icon d={theme === 'dark' ? Icons.moon : Icons.sun} size={15} />}
+                    label="Dark Theme"
+                    description="Toggle between light and dark mode"
+                  >
+                    <Toggle checked={theme === 'dark'} onChange={toggleTheme} />
+                  </SettingRow>
 
-                    <SettingRow
-                      icon={<Icon d={theme === 'dark' ? Icons.moon : Icons.sun} size={15} />}
-                      label="Dark Theme"
-                      description="Toggle between light and dark mode"
-                    >
-                      <Toggle checked={theme === 'dark'} onChange={toggleTheme} />
-                    </SettingRow>
+                  <SettingRow
+                    icon={<Icon d={Icons.bell} size={15} />}
+                    label="Notifications"
+                    description="Desktop alerts for new messages"
+                  >
+                    <Toggle checked={notifications} onChange={handleToggleNotifications} />
+                  </SettingRow>
 
-                    <SettingRow
-                      icon={<Icon d={Icons.bell} size={15} />}
-                      label="Notifications"
-                      description="Desktop alerts for new messages"
-                    >
-                      <Toggle checked={notifications} onChange={handleToggleNotifications} />
-                    </SettingRow>
+                  <SettingRow
+                    icon={<Icon d={Icons.mic} size={15} />}
+                    label="Message Sounds"
+                    description="Play sound on incoming messages"
+                  >
+                    <Toggle checked={sounds} onChange={handleToggleSounds} />
+                  </SettingRow>
+                </div>
 
-                    <SettingRow
-                      icon={<Icon d={Icons.mic} size={15} />}
-                      label="Message Sounds"
-                      description="Play sound on incoming messages"
-                    >
-                      <Toggle checked={sounds} onChange={handleToggleSounds} />
-                    </SettingRow>
-                  </div>
-                )}
+                <div style={{ height: 1, background: 'var(--border)' }} />
 
-                {/* SECURITY TAB */}
-                {activeTab === 'security' && (
-                  <div className="animate-fade-in">
-                    <SecuritySection onToast={addToast} onLogout={onLogout} />
-                  </div>
-                )}
+                {/* Security */}
+                <div>
+                  <SecuritySection onToast={addToast} onLogout={onLogout} />
+                </div>
               </div>
             </div>
           </div>
