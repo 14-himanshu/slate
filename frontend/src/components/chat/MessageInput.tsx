@@ -29,11 +29,62 @@ export function MessageInput({
 }: ComposerProps) {
     const [focused, setFocused] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [preview, setPreview] = useState<{ url: string; name: string; isImage: boolean } | null>(null);
+    const [preview, setPreview] = useState<{ url: string; name: string; isImage: boolean; isAudio?: boolean; file?: File } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<BlobPart[]>([]);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const discardNextRecording = useRef(false);
 
     const canSend = isConnected && !disabled && !uploading && (!!value.trim() || !!preview);
     const isOffline = !isConnected && !disabled;
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+            discardNextRecording.current = false;
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) audioChunksRef.current.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                stream.getTracks().forEach(track => track.stop());
+                if (discardNextRecording.current) return;
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const file = new File([audioBlob], 'voice-note.webm', { type: 'audio/webm' });
+                setPreview({ url: URL.createObjectURL(file), name: 'Voice Note', isImage: false, isAudio: true, file });
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+            setRecordingDuration(0);
+            timerRef.current = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error('Microphone access denied:', err);
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+    };
+
+    const cancelRecording = () => {
+        discardNextRecording.current = true;
+        stopRecording();
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -47,10 +98,11 @@ export function MessageInput({
         if (editingMsg) {
             onEditMessage(editingMsg.id, value);
             setEditingMsg(null); setValue('');
-        } else if (preview && fileInputRef.current?.files?.[0]) {
+        } else if (preview && (fileInputRef.current?.files?.[0] || preview.file)) {
             setUploading(true);
             try {
-                await sendFileMessage(fileInputRef.current.files[0], value, replyToMsg?.id);
+                const fileToUpload = preview.file || fileInputRef.current!.files![0];
+                await sendFileMessage(fileToUpload, value, replyToMsg?.id);
                 setValue('');
             } finally {
                 setUploading(false); setPreview(null); setReplyToMsg(null);
@@ -72,6 +124,7 @@ export function MessageInput({
         : uploading ? 'Uploading…'
         : isOffline ? 'Reconnecting…'
         : editingMsg ? 'Edit your message…'
+        : isRecording ? 'Recording...'
         : 'Write a message…';
 
     return (
@@ -102,6 +155,10 @@ export function MessageInput({
                 }}>
                     {preview.isImage ? (
                         <img src={preview.url} alt="preview" style={{ height: 44, width: 44, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                    ) : preview.isAudio ? (
+                        <div style={{ width: 36, height: 36, background: 'var(--success-bg)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Icon d={Icons.mic} size={16} color="var(--success)" />
+                        </div>
                     ) : (
                         <div style={{ width: 36, height: 36, background: 'var(--accent-bg)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             <Icon d={Icons.paperclip} size={16} color="var(--accent)" />
@@ -237,26 +294,36 @@ export function MessageInput({
                 </button>
 
                 {/* Text input */}
-                <input
-                    ref={inputRef}
-                    id="message-input"
-                    type="text"
-                    value={value}
-                    onChange={e => { setValue(e.target.value); onTyping(e.target.value.length > 0); }}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } if (e.key === 'Escape') { setReplyToMsg(null); setEditingMsg(null); setValue(''); } }}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => { setFocused(false); onTyping(false); }}
-                    disabled={!isConnected || disabled || uploading}
-                    placeholder={placeholderText}
-                    style={{
-                        flex: 1, height: 36,
-                        background: 'transparent',
-                        border: 'none', outline: 'none',
-                        fontSize: 14, color: 'var(--text-primary)',
-                        fontFamily: 'inherit',
-                        caretColor: 'var(--accent)',
-                    }}
-                />
+                {isRecording ? (
+                    <div style={{ flex: 1, height: 36, display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px', color: 'var(--danger)', fontSize: 14, fontWeight: 500 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)', animation: 'pulse 1.5s infinite' }} />
+                        Recording... {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+                        <button onClick={cancelRecording} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13 }} onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                            Cancel
+                        </button>
+                    </div>
+                ) : (
+                    <input
+                        ref={inputRef}
+                        id="message-input"
+                        type="text"
+                        value={value}
+                        onChange={e => { setValue(e.target.value); onTyping(e.target.value.length > 0); }}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } if (e.key === 'Escape') { setReplyToMsg(null); setEditingMsg(null); setValue(''); } }}
+                        onFocus={() => setFocused(true)}
+                        onBlur={() => { setFocused(false); onTyping(false); }}
+                        disabled={!isConnected || disabled || uploading}
+                        placeholder={placeholderText}
+                        style={{
+                            flex: 1, height: 36,
+                            background: 'transparent',
+                            border: 'none', outline: 'none',
+                            fontSize: 14, color: 'var(--text-primary)',
+                            fontFamily: 'inherit',
+                            caretColor: 'var(--accent)',
+                        }}
+                    />
+                )}
 
                 {/* Status indicator (offline) */}
                 {isOffline && (
@@ -265,27 +332,69 @@ export function MessageInput({
                     </span>
                 )}
 
-                {/* Send button */}
-                <button
-                    id="send-message-btn"
-                    onClick={handleSend}
-                    disabled={!canSend}
-                    aria-label="Send message"
-                    style={{
-                        width: 36, height: 36,
-                        borderRadius: 9,
-                        border: 'none',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: canSend ? 'var(--accent)' : 'transparent',
-                        color: canSend ? '#fff' : 'var(--text-muted)',
-                        cursor: canSend ? 'pointer' : 'not-allowed',
-                        flexShrink: 0,
-                        transition: 'all 0.12s',
-                        boxShadow: canSend ? '0 2px 8px rgba(79,110,247,0.3)' : 'none',
-                    }}
-                >
-                    <Icon d={Icons.send} size={15} />
-                </button>
+                {/* Send or Mic button */}
+                {!value && !preview && !isRecording ? (
+                    <button
+                        onClick={startRecording}
+                        disabled={!isConnected || disabled || uploading}
+                        title="Hold to record voice note"
+                        style={{
+                            width: 36, height: 36,
+                            borderRadius: 9,
+                            border: 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: (!isConnected || disabled || uploading) ? 'not-allowed' : 'pointer',
+                            flexShrink: 0,
+                            transition: 'all 0.12s',
+                        }}
+                        onMouseEnter={e => { if (isConnected && !disabled && !uploading) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                    >
+                        <Icon d={Icons.mic} size={15} />
+                    </button>
+                ) : isRecording ? (
+                    <button
+                        onClick={stopRecording}
+                        title="Stop and attach"
+                        style={{
+                            width: 36, height: 36,
+                            borderRadius: 9,
+                            border: 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'var(--danger)',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            transition: 'all 0.12s',
+                            boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
+                        }}
+                    >
+                        <Icon d={Icons.micOff} size={15} />
+                    </button>
+                ) : (
+                    <button
+                        id="send-message-btn"
+                        onClick={handleSend}
+                        disabled={!canSend}
+                        aria-label="Send message"
+                        style={{
+                            width: 36, height: 36,
+                            borderRadius: 9,
+                            border: 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: canSend ? 'var(--accent)' : 'transparent',
+                            color: canSend ? '#fff' : 'var(--text-muted)',
+                            cursor: canSend ? 'pointer' : 'not-allowed',
+                            flexShrink: 0,
+                            transition: 'all 0.12s',
+                            boxShadow: canSend ? '0 2px 8px rgba(79,110,247,0.3)' : 'none',
+                        }}
+                    >
+                        <Icon d={Icons.send} size={15} />
+                    </button>
+                )}
             </div>
         </footer>
     );

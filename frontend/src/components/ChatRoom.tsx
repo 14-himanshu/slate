@@ -7,6 +7,7 @@ import { RoomInfoPanel } from './chat/RoomInfoPanel';
 import { MessageList } from './chat/MessageList';
 import { MessageInput } from './chat/MessageInput';
 import { PinnedMessagesModal } from './chat/PinnedMessagesModal';
+import { ThreadPanel } from './chat/ThreadPanel';
 
 export interface ChatRoomProps {
     userRooms: import('../types').RoomSummary[];
@@ -31,10 +32,10 @@ export interface ChatRoomProps {
     onSearchUsers: (query: string) => Promise<UserSummary[]>;
     inputValue: string;
     setInputValue: (v: string) => void;
-    sendMessage: (inputValue: string, replyToId?: string) => void;
-    sendFileMessage: (f: File, caption?: string, replyToId?: string) => Promise<void>;
-    sendDirectMessage: (inputValue: string, replyToId?: string) => void;
-    sendDirectFileMessage: (f: File, caption?: string, replyToId?: string) => Promise<void>;
+    sendMessage: (inputValue: string, replyToId?: string, threadId?: string) => void;
+    sendFileMessage: (f: File, caption?: string, replyToId?: string, threadId?: string) => Promise<void>;
+    sendDirectMessage: (inputValue: string, replyToId?: string, threadId?: string) => void;
+    sendDirectFileMessage: (f: File, caption?: string, replyToId?: string, threadId?: string) => Promise<void>;
     onEditMessage: (msgId: string, text: string) => void;
     onDeleteMessage: (msgId: string) => void;
     onReactMessage: (msgId: string, icon: string) => void;
@@ -43,6 +44,8 @@ export interface ChatRoomProps {
     onReactDirectMessage: (msgId: string, icon: string) => void;
     loadMoreMessages: (roomId: string, beforeDate: Date) => void;
     loadMoreDmMessages: (conversationId: string, beforeDate: Date) => void;
+    threadMessages: Record<string, Message[]>;
+    loadThreadMessages: (threadId: string, beforeDate?: Date) => void;
     isConnected: boolean;
     messagesEndRef: React.RefObject<HTMLDivElement | null>;
     inputRef: React.RefObject<HTMLInputElement | null>;
@@ -87,6 +90,8 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     onReactDirectMessage,
     loadMoreMessages,
     loadMoreDmMessages,
+    threadMessages,
+    loadThreadMessages,
     isConnected,
     messagesEndRef,
     inputRef,
@@ -100,6 +105,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     const [messageSearchQuery, setMessageSearchQuery] = useState('');
     const [replyToMsg, setReplyToMsg] = useState<ChatMessage | null>(null);
     const [editingMsg, setEditingMsg] = useState<ChatMessage | null>(null);
+    const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
     const [localToast, setLocalToast] = useState<string | null>(null);
     const [showRoomInfo, setShowRoomInfo] = useState(false);
     
@@ -139,6 +145,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
         setMessageSearchQuery('');
         setInputValue('');
         setShowRoomInfo(false);
+        setActiveThreadId(null);
     }, [activeSection, activeRoom, activeConversationId, setInputValue]);
     
     const handleJumpToMessage = (messageId: string) => {
@@ -213,8 +220,9 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
             />
 
             {/* Main area */}
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-                {/* Header */}
+            <div style={{ display: 'flex', flexDirection: 'row', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                    {/* Header */}
                 <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 56, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', flexShrink: 0, gap: 12 }}>
                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         {isDirect ? (
@@ -355,6 +363,12 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                                     currentUser={currentUser}
                                     messagesEndRef={messagesEndRef}
                                     onReply={setReplyToMsg}
+                                    onThreadReply={(m) => {
+                                        setActiveThreadId(m.id);
+                                        if (!threadMessages[m.id]) {
+                                            loadThreadMessages(m.id);
+                                        }
+                                    }}
                                     onEdit={(m) => { setEditingMsg(m); setInputValue(m.text); }}
                                     onDelete={handleDelete}
                                     onReact={handleReact}
@@ -390,6 +404,21 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                         activeTypingUsers={activeTypingUsers}
                     />
                 </div>
+                </div>
+                {activeThreadId && (
+                    <ThreadPanel 
+                        parentMessage={messages.find(m => m.id === activeThreadId) as Message}
+                        messages={threadMessages[activeThreadId] || []}
+                        username={currentUser || ''}
+                        onClose={() => setActiveThreadId(null)}
+                        onSendMessage={(text) => sendActiveMessage(text, undefined, activeThreadId)}
+                        onSendFile={(f, cap) => sendActiveFile(f, cap, undefined, activeThreadId)}
+                        onEditMessage={handleEditCommit}
+                        onDeleteMessage={(id) => handleDelete({ id } as ChatMessage)}
+                        onReactMessage={(id, icon) => handleReact({ id } as ChatMessage, icon)}
+                        isConnected={isConnected}
+                    />
+                )}
             </div>
 
             

@@ -11,6 +11,7 @@ const ALLOWED_MIMES = new Set([
   "application/pdf", "text/plain",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "audio/webm", "audio/mpeg", "audio/ogg", "audio/mp4", "video/mp4"
 ]);
 
 const upload = multer({

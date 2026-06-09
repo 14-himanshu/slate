@@ -20,7 +20,7 @@ export interface DirectConversationSummary {
   lastMessage?: {
     id: string;
     text: string;
-    type: "text" | "image" | "file";
+    type: "text" | "image" | "file" | "audio";
     fileName?: string;
     timestamp: string;
     senderId: string;

@@ -178,6 +178,8 @@ function App() {
           onReactDirectMessage={chatState.reactDirectMessage}
           loadMoreMessages={chatState.loadMoreMessages}
           loadMoreDmMessages={chatState.loadMoreDmMessages}
+          threadMessages={chatState.threadMessages}
+          loadThreadMessages={chatState.loadThreadMessages}
           onTyping={chatState.handleTyping}
           onDirectTyping={chatState.handleDirectTyping}
           isConnected={chatState.isConnected}

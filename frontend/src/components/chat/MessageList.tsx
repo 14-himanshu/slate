@@ -13,9 +13,9 @@ function formatDateLabel(d: Date) {
     return d.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export function MessageList({ messages, currentUser, messagesEndRef, onReply, onEdit, onDelete, onReact, onJumpToMessage, onLoadMore }: {
+export function MessageList({ messages, currentUser, messagesEndRef, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, onLoadMore }: {
     messages: ChatMessage[]; currentUser: string | null; messagesEndRef: React.RefObject<HTMLDivElement | null>;
-    onReply: (m: ChatMessage) => void; onEdit: (m: ChatMessage) => void; onDelete: (m: ChatMessage) => void; onReact: (m: ChatMessage, icon: string) => void;
+    onReply: (m: ChatMessage) => void; onThreadReply?: (m: ChatMessage) => void; onEdit: (m: ChatMessage) => void; onDelete: (m: ChatMessage) => void; onReact: (m: ChatMessage, icon: string) => void;
     onJumpToMessage: (id: string) => void;
     onLoadMore?: () => void;
 }) {
@@ -98,6 +98,7 @@ export function MessageList({ messages, currentUser, messagesEndRef, onReply, on
                             isFirstInGroup={isFirstInGroup} 
                             isLastInGroup={isLastInGroup} 
                             onReply={onReply} 
+                            onThreadReply={onThreadReply}
                             onEdit={onEdit} 
                             onDelete={onDelete} 
                             onReact={onReact} 

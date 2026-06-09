@@ -2,7 +2,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import type { Server } from "http";
 import type { IncomingMessage } from "http";
 import { authenticateWsRequest } from "../middleware/auth.middleware.js";
-import { saveMessage, getRoomHistory, editMessage, deleteMessage, addReaction } from "../services/message.service.js";
+import { saveMessage, getRoomHistory, editMessage, deleteMessage, addReaction, getThreadHistory } from "../services/message.service.js";
 import {
   saveDirectMessage,
   getDirectHistory,
@@ -140,17 +140,34 @@ export function setupWebSocketServer(httpServer: Server): void {
 
       // ── LOAD MORE ROOM HISTORY ─────────────────────────────
       if (parsed.type === "loadMoreRoomHistory") {
-        const roomId = parsed.payload?.["roomId"]?.trim().toUpperCase();
-        const beforeString = parsed.payload?.["before"];
-        
-        if (!roomId || !user.rooms.has(roomId) || !beforeString) return;
+        const roomId = parsed.payload["roomId"]?.trim().toUpperCase();
+        const before = parsed.payload["before"]; // ISO string
 
-        try {
-          const beforeDate = new Date(beforeString);
-          const history = await getRoomHistory(roomId, beforeDate);
-          send(socket, { type: "historyLoaded", payload: { roomId, messages: history } });
-        } catch (err) {
-          console.error("Failed to load more room history:", err);
+        if (roomId && user.rooms.has(roomId) && before) {
+          try {
+            const date = new Date(before);
+            const messages = await getRoomHistory(roomId, date);
+            send(socket, { type: "historyLoaded", payload: { roomId, messages } });
+          } catch (err) {
+            console.error("Failed to load more room history:", err);
+          }
+        }
+        return;
+      }
+
+      // ── LOAD THREAD HISTORY ─────────────────────────────────
+      if (parsed.type === "loadThreadHistory") {
+        const threadId = parsed.payload["threadId"];
+        const before = parsed.payload["before"]; // Optional ISO string
+
+        if (threadId) {
+          try {
+            const date = before ? new Date(before) : undefined;
+            const messages = await getThreadHistory(threadId, date);
+            send(socket, { type: "threadHistoryLoaded", payload: { threadId, messages } });
+          } catch (err) {
+            console.error("Failed to load thread history:", err);
+          }
         }
         return;
       }
@@ -228,7 +245,7 @@ export function setupWebSocketServer(httpServer: Server): void {
       if (parsed.type === "dmMessage") {
         const conversationId = parsed.payload?.["conversationId"];
         const message = parsed.payload?.["message"]?.trim() ?? "";
-        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file") ?? "text";
+        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file" | "audio") ?? "text";
         const fileUrl = parsed.payload?.["fileUrl"];
         const fileName = parsed.payload?.["fileName"];
         const replyTo = parsed.payload?.["replyTo"];
@@ -379,10 +396,11 @@ export function setupWebSocketServer(httpServer: Server): void {
       if (parsed.type === "chat") {
         const roomId      = parsed.payload?.["roomId"]?.trim().toUpperCase();
         const message     = parsed.payload?.["message"]?.trim() ?? "";
-        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file") ?? "text";
+        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file" | "audio") ?? "text";
         const fileUrl     = parsed.payload?.["fileUrl"];
         const fileName    = parsed.payload?.["fileName"];
         const replyTo     = parsed.payload?.["replyTo"];
+        const threadId    = parsed.payload?.["threadId"];
         const linkPreviewRaw = parsed.payload?.["linkPreview"];
         let linkPreview: { title: string | null; description: string | null; image: string | null; url: string; } | undefined;
 
@@ -406,7 +424,7 @@ export function setupWebSocketServer(httpServer: Server): void {
         if (!message && !fileUrl) return;
 
         try {
-          const savedMessage = await saveMessage(roomId, userId, username, message || fileName || "file", messageType, fileUrl, fileName, replyTo, linkPreview);
+          const savedMessage = await saveMessage(roomId, userId, username, message || fileName || "file", messageType, fileUrl, fileName, replyTo, linkPreview, threadId);
           // Broadcast the fully populated message
           broadcastToRoom(roomId, {
             type:    "chat",

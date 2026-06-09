@@ -1,6 +1,6 @@
 // Shared TypeScript types for the entire frontend
 
-export type MessageType = "text" | "image" | "file";
+export type MessageType = "text" | "image" | "file" | "audio";
 
 export interface Reaction {
   icon: string;
@@ -30,6 +30,9 @@ export interface Message {
     image: string | null;
     url: string;
   };
+  threadId?: string;
+  threadReplyCount?: number;
+  lastThreadReplyAt?: string;
 }
 
 export type UserStatus = "online" | "offline" | "busy" | "away";
