@@ -27,6 +27,7 @@ export interface IDirectMessage extends Document {
     encryptedKeySender: string;
     encryptedKeyRecipient: string;
   };
+  seenAt?: Date;
 }
 
 const directReactionSchema = new Schema<IDirectReaction>(
@@ -62,6 +63,7 @@ const directMessageSchema = new Schema<IDirectMessage>({
     encryptedKeySender: String,
     encryptedKeyRecipient: String,
   },
+  seenAt: { type: Date },
 });
 
 directMessageSchema.index({ conversationId: 1, timestamp: 1 });

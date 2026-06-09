@@ -84,6 +84,7 @@ export interface DirectMessage {
     encryptedKeySender: string;
     encryptedKeyRecipient: string;
   };
+  seenAt?: string;
 }
 
 export interface DirectConversationSummary {

@@ -71,6 +71,7 @@ export function useChat(
       id: raw.id, conversationId: raw.conversationId, senderId: raw.senderId, username: raw.username,
       text: raw.message, timestamp: new Date(raw.timestamp), type: (raw.type ?? 'text') as DirectMessage['type'],
       fileUrl: raw.fileUrl, fileName: raw.fileName, edited: raw.edited, deleted: raw.deleted, replyTo, reactions: raw.reactions,
+      seenAt: raw.seenAt,
     };
   }, []);
 
@@ -212,6 +213,16 @@ export function useChat(
             const p = data.payload as any;
             const updated = parseDirectMessage(p);
             setDmMessagesByConversation(prev => ({ ...prev, [p.conversationId]: (prev[p.conversationId] ?? []).map(msg => msg.id === updated.id ? updated : msg) }));
+          } else if (data.type === 'dmReadUpdate') {
+            const { conversationId, seenMessageIds, seenAt } = data.payload as { conversationId: string; seenMessageIds: string[]; seenAt: string };
+            const idSet = new Set(seenMessageIds);
+            setDmMessagesByConversation(prev => ({
+              ...prev,
+              [conversationId]: (prev[conversationId] ?? []).map(msg =>
+                idSet.has(msg.id) ? { ...msg, seenAt } : msg
+              )
+            }));
+
           } else if (data.type === 'dmTyping') {
             const { conversationId, username: typist, isTyping } = data.payload as { conversationId: string; username: string; isTyping: boolean };
             if (typist === username) return;

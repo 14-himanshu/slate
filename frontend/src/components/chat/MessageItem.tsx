@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Avatar, Icon, Icons } from '../ui';
+import { Avatar } from '../ui';
 import { LinkPreview } from './LinkPreview';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -395,7 +395,7 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                                     <LinkPreview {...decryptedLinkPreview} />
                                 )}
                                 
-                                {/* Timestamp & Delivery Status */}
+                                {/* Timestamp & Delivery Status / Read Receipts */}
                                 <div style={{ 
                                     display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, 
                                     marginTop: 4, marginRight: -4,
@@ -403,14 +403,19 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                                     userSelect: 'none'
                                 }}>
                                     <span>{formatTime(msg.timestamp)}</span>
-                                    {mine && (
-                                        <span style={{ display: 'flex', alignItems: 'center' }}>
-                                            {msg.status === 'sending' ? (
-                                                <Icon d={Icons.loader} size={10} style={{ animation: 'spin 1s linear infinite' }} />
-                                            ) : msg.status === 'sent' ? (
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    {mine && msg.conversationId && (
+                                        <span style={{ display: 'flex', alignItems: 'center' }} title={msg.seenAt ? `Seen at ${new Date(msg.seenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Sent'}>
+                                            {msg.seenAt ? (
+                                                /* Double tick – blue = seen */
+                                                <svg width="16" height="10" viewBox="0 0 24 15" fill="none" stroke="#60A5FA" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="2 8 7 13 17 2"/>
+                                                    <polyline points="8 8 13 13 23 2"/>
+                                                </svg>
                                             ) : (
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 10 11 21 6 16"></polyline></svg>
+                                                /* Single grey tick – sent / delivered */
+                                                <svg width="12" height="10" viewBox="0 0 24 15" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="2 8 7 13 22 2"/>
+                                                </svg>
                                             )}
                                         </span>
                                     )}

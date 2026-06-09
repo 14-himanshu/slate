@@ -8,7 +8,8 @@ import {
   getDirectHistory,
   editDirectMessage,
   deleteDirectMessage,
-  addDirectReaction
+  addDirectReaction,
+  markMessagesSeenByUser
 } from "../services/direct-message.service.js";
 import {
   ensureConversationAccess,
@@ -418,7 +419,17 @@ export function setupWebSocketServer(httpServer: Server): void {
         const conversationId = parsed.payload?.["conversationId"];
         if (conversationId && user.conversations.has(conversationId)) {
           await markConversationRead(conversationId, userId);
+          // Mark individual messages as seen and get their IDs
+          const seenMessageIds = await markMessagesSeenByUser(conversationId, userId);
+          // Broadcast unread count reset to this user
           broadcastToConversation(conversationId, { type: "dmRead", payload: { conversationId, userId } });
+          // Broadcast seen ticks to both participants if there were messages marked
+          if (seenMessageIds.length > 0) {
+            broadcastToConversation(conversationId, {
+              type: "dmReadUpdate",
+              payload: { conversationId, seenMessageIds, seenAt: new Date().toISOString() }
+            });
+          }
         }
         return;
       }
