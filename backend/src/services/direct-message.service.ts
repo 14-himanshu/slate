@@ -26,6 +26,7 @@ export interface SerializedDirectMessage {
     encryptedKeySender: string;
     encryptedKeyRecipient: string;
   };
+  seenAt?: string;
 }
 
 export async function saveDirectMessage(
@@ -126,6 +127,34 @@ export async function addDirectReaction(
   return serialize(doc);
 }
 
+export async function markMessagesSeenByUser(
+  conversationId: string,
+  readerUserId: string
+): Promise<string[]> {
+  const now = new Date();
+  await DirectMessage.updateMany(
+    {
+      conversationId,
+      senderId: { $ne: new mongoose.Types.ObjectId(readerUserId) },
+      seenAt: { $exists: false },
+      deleted: { $ne: true },
+    },
+    { $set: { seenAt: now } }
+  );
+
+  const seenDocs = await DirectMessage.find(
+    {
+      conversationId,
+      senderId: { $ne: new mongoose.Types.ObjectId(readerUserId) },
+      seenAt: now,
+    },
+    { _id: 1 }
+  ).lean();
+
+  return seenDocs.map((d: any) => d._id.toString());
+}
+
+
 function serialize(doc: any): SerializedDirectMessage {
   let replyToSerialized: string | SerializedDirectMessage | undefined = undefined;
   if (doc.replyTo) {
@@ -150,7 +179,8 @@ function serialize(doc: any): SerializedDirectMessage {
     ...(doc.reactions?.length ? { reactions: doc.reactions } : {}),
     ...(doc.fileUrl ? { fileUrl: doc.fileUrl } : {}),
     ...(doc.fileName ? { fileName: doc.fileName } : {}),
-    ...(doc.isE2EE ? { isE2EE: doc.isE2EE, e2eeData: doc.e2eeData } : {})
+    ...(doc.isE2EE ? { isE2EE: doc.isE2EE, e2eeData: doc.e2eeData } : {}),
+    ...(doc.seenAt ? { seenAt: doc.seenAt instanceof Date ? doc.seenAt.toISOString() : doc.seenAt } : {})
   };
 
   return payload;

@@ -25,6 +25,9 @@ export interface SerializedMessage {
     image: string | null;
     url: string;
   };
+  threadId?: string;
+  threadReplyCount?: number;
+  lastThreadReplyAt?: string;
 }
 
 /** Persist a chat message (text or file) to the database */
@@ -37,20 +40,40 @@ export async function saveMessage(
   fileUrl?: string,
   fileName?: string,
   replyTo?: string,
-  linkPreview?: { title: string | null; description: string | null; image: string | null; url: string; }
+  linkPreview?: { title: string | null; description: string | null; image: string | null; url: string; },
+  threadId?: string
 ): Promise<SerializedMessage> {
   const payload: any = { roomId, userId, username, message, type };
   if (fileUrl) payload.fileUrl = fileUrl;
   if (fileName) payload.fileName = fileName;
   if (replyTo) payload.replyTo = new mongoose.Types.ObjectId(replyTo);
   if (linkPreview) payload.linkPreview = linkPreview;
+  if (threadId) {
+    payload.threadId = new mongoose.Types.ObjectId(threadId);
+    await Message.findByIdAndUpdate(threadId, {
+      $inc: { threadReplyCount: 1 },
+      $set: { lastThreadReplyAt: new Date() }
+    });
+  }
 
   const doc = await Message.create(payload);
   return serialize(doc);
 }
 
 export async function getRoomHistory(roomId: string, before?: Date, limit: number = HISTORY_LIMIT): Promise<SerializedMessage[]> {
-  const query: Record<string, unknown> = { roomId };
+  const query: Record<string, unknown> = { roomId, threadId: { $exists: false } };
+  if (before) query["timestamp"] = { $lt: before };
+
+  const docs = await Message.find(query)
+    .populate("replyTo")
+    .sort({ timestamp: -1 })
+    .limit(limit)
+    .lean();
+  return docs.reverse().map(serialize);
+}
+
+export async function getThreadHistory(threadId: string, before?: Date, limit: number = HISTORY_LIMIT): Promise<SerializedMessage[]> {
+  const query: Record<string, unknown> = { threadId };
   if (before) query["timestamp"] = { $lt: before };
 
   const docs = await Message.find(query)
@@ -118,6 +141,9 @@ function serialize(doc: any): SerializedMessage {
     ...(doc.fileUrl  ? { fileUrl:  doc.fileUrl }  : {}),
     ...(doc.fileName ? { fileName: doc.fileName } : {}),
     ...(doc.linkPreview ? { linkPreview: doc.linkPreview } : {}),
+    ...(doc.threadId ? { threadId: doc.threadId.toString() } : {}),
+    ...(doc.threadReplyCount !== undefined ? { threadReplyCount: doc.threadReplyCount } : {}),
+    ...(doc.lastThreadReplyAt ? { lastThreadReplyAt: doc.lastThreadReplyAt.toISOString() } : {}),
   };
 
   return payload;

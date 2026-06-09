@@ -22,6 +22,7 @@ export function useChat(
   const [onlineUsersByRoom, setOnlineUsersByRoom] = useState<Record<string, string[]>>({});
   const [typingUsersByRoom, setTypingUsersByRoom] = useState<Record<string, string[]>>({});
   const [activeSection, setActiveSection] = useState<'rooms' | 'dm'>(storedActiveSection);
+  const [threadMessages, setThreadMessages] = useState<Record<string, Message[]>>({});
   const [userRooms, setUserRooms] = useState<import('../types').RoomSummary[]>([]);
   const [directConversations, setDirectConversations] = useState<DirectConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(storedActiveDm);
@@ -32,6 +33,7 @@ export function useChat(
   const directConversationsRef = useRef<DirectConversationSummary[]>([]);
   const activeConversationIdRef = useRef<string | null>(storedActiveDm);
   const activeSectionRef = useRef<'rooms' | 'dm'>(storedActiveSection);
+  const activeRoomRef = useRef<string | null>(activeRoom);
 
   useEffect(() => { localStorage.setItem('chat_rooms', JSON.stringify(joinedRooms)); }, [joinedRooms]);
   useEffect(() => { localStorage.setItem('chat_active_section', activeSection); }, [activeSection]);
@@ -42,6 +44,7 @@ export function useChat(
   useEffect(() => { directConversationsRef.current = directConversations; }, [directConversations]);
   useEffect(() => { activeConversationIdRef.current = activeConversationId; }, [activeConversationId]);
   useEffect(() => { activeSectionRef.current = activeSection; }, [activeSection]);
+  useEffect(() => { activeRoomRef.current = activeRoom; }, [activeRoom]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -68,6 +71,7 @@ export function useChat(
       id: raw.id, conversationId: raw.conversationId, senderId: raw.senderId, username: raw.username,
       text: raw.message, timestamp: new Date(raw.timestamp), type: (raw.type ?? 'text') as DirectMessage['type'],
       fileUrl: raw.fileUrl, fileName: raw.fileName, edited: raw.edited, deleted: raw.deleted, replyTo, reactions: raw.reactions,
+      seenAt: raw.seenAt,
     };
   }, []);
 
@@ -102,28 +106,47 @@ export function useChat(
             const roomId = data.payload['roomId'] as string;
             const messages = (data.payload['messages'] as Array<any>).map(m => ({
               id: m.id, roomId: m.roomId, text: m.message, username: m.username, timestamp: new Date(m.timestamp),
-              type: (m.type as Message['type']) ?? 'text', fileUrl: m.fileUrl, fileName: m.fileName, edited: m.edited, deleted: m.deleted, replyTo: m.replyTo, reactions: m.reactions, linkPreview: m.linkPreview
+              type: (m.type as Message['type']) ?? 'text', fileUrl: m.fileUrl, fileName: m.fileName, edited: m.edited, deleted: m.deleted, replyTo: m.replyTo, reactions: m.reactions, linkPreview: m.linkPreview, threadId: m.threadId, threadReplyCount: m.threadReplyCount, lastThreadReplyAt: m.lastThreadReplyAt
             }));
             setMessagesByRoom(prev => ({ ...prev, [roomId]: messages }));
           } else if (data.type === 'historyLoaded') {
             const roomId = data.payload['roomId'] as string;
             const messages = (data.payload['messages'] as Array<any>).map(m => ({
               id: m.id, roomId: m.roomId, text: m.message, username: m.username, timestamp: new Date(m.timestamp),
-              type: (m.type as Message['type']) ?? 'text', fileUrl: m.fileUrl, fileName: m.fileName, edited: m.edited, deleted: m.deleted, replyTo: m.replyTo, reactions: m.reactions, linkPreview: m.linkPreview
+              type: (m.type as Message['type']) ?? 'text', fileUrl: m.fileUrl, fileName: m.fileName, edited: m.edited, deleted: m.deleted, replyTo: m.replyTo, reactions: m.reactions, linkPreview: m.linkPreview, threadId: m.threadId, threadReplyCount: m.threadReplyCount, lastThreadReplyAt: m.lastThreadReplyAt
             }));
             setMessagesByRoom(prev => {
               const current = prev[roomId] || [];
               const newMessages = messages.filter(m => !current.some(c => c.id === m.id));
               return { ...prev, [roomId]: [...newMessages, ...current].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) };
             });
+          } else if (data.type === 'threadHistoryLoaded') {
+            const threadId = data.payload['threadId'] as string;
+            const messages = (data.payload['messages'] as Array<any>).map(m => ({
+              id: m.id, roomId: m.roomId, text: m.message, username: m.username, timestamp: new Date(m.timestamp),
+              type: (m.type as Message['type']) ?? 'text', fileUrl: m.fileUrl, fileName: m.fileName, edited: m.edited, deleted: m.deleted, replyTo: m.replyTo, reactions: m.reactions, linkPreview: m.linkPreview, threadId: m.threadId, threadReplyCount: m.threadReplyCount, lastThreadReplyAt: m.lastThreadReplyAt
+            }));
+            setThreadMessages(prev => {
+              const current = prev[threadId] || [];
+              const newMessages = messages.filter(m => !current.some(c => c.id === m.id));
+              return { ...prev, [threadId]: [...newMessages, ...current].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) };
+            });
           } else if (data.type === 'chat') {
             const p = data.payload as any;
             const newMsg: Message = {
               id: p.id || Date.now().toString() + Math.random(), roomId: p.roomId, text: p.message, username: p.username, timestamp: new Date(p.timestamp),
-              type: (p.type || p.messageType) ?? 'text', fileUrl: p.fileUrl, fileName: p.fileName, edited: p.edited, deleted: p.deleted, replyTo: p.replyTo, reactions: p.reactions, linkPreview: p.linkPreview
+              type: (p.type || p.messageType) ?? 'text', fileUrl: p.fileUrl, fileName: p.fileName, edited: p.edited, deleted: p.deleted, replyTo: p.replyTo, reactions: p.reactions, linkPreview: p.linkPreview, threadId: p.threadId, threadReplyCount: p.threadReplyCount, lastThreadReplyAt: p.lastThreadReplyAt
             };
-            setMessagesByRoom(prev => ({ ...prev, [p.roomId]: [...(prev[p.roomId] ?? []), newMsg] }));
-            setActiveRoom(current => { if (current !== p.roomId) setUnreadByRoom(u => ({ ...u, [p.roomId]: (u[p.roomId] ?? 0) + 1 })); return current; });
+            if (p.threadId) {
+              setThreadMessages(prev => ({ ...prev, [p.threadId]: [...(prev[p.threadId] ?? []), newMsg] }));
+              setMessagesByRoom(prev => ({
+                ...prev,
+                [p.roomId]: (prev[p.roomId] ?? []).map(m => m.id === p.threadId ? { ...m, threadReplyCount: (m.threadReplyCount || 0) + 1, lastThreadReplyAt: newMsg.timestamp.toISOString() } : m)
+              }));
+            } else {
+              setMessagesByRoom(prev => ({ ...prev, [p.roomId]: [...(prev[p.roomId] ?? []), newMsg] }));
+              setActiveRoom(current => { if (current !== p.roomId) setUnreadByRoom(u => ({ ...u, [p.roomId]: (u[p.roomId] ?? 0) + 1 })); return current; });
+            }
             
             if (document.hidden && newMsg.username !== username && localStorage.getItem('chat_notifications') === 'true') {
               const mutedRooms = JSON.parse(localStorage.getItem('chat_muted_rooms') ?? '[]');
@@ -190,6 +213,16 @@ export function useChat(
             const p = data.payload as any;
             const updated = parseDirectMessage(p);
             setDmMessagesByConversation(prev => ({ ...prev, [p.conversationId]: (prev[p.conversationId] ?? []).map(msg => msg.id === updated.id ? updated : msg) }));
+          } else if (data.type === 'dmReadUpdate') {
+            const { conversationId, seenMessageIds, seenAt } = data.payload as { conversationId: string; seenMessageIds: string[]; seenAt: string };
+            const idSet = new Set(seenMessageIds);
+            setDmMessagesByConversation(prev => ({
+              ...prev,
+              [conversationId]: (prev[conversationId] ?? []).map(msg =>
+                idSet.has(msg.id) ? { ...msg, seenAt } : msg
+              )
+            }));
+
           } else if (data.type === 'dmTyping') {
             const { conversationId, username: typist, isTyping } = data.payload as { conversationId: string; username: string; isTyping: boolean };
             if (typist === username) return;
@@ -202,6 +235,18 @@ export function useChat(
           } else if (data.type === 'presence') {
             const { userId, status, lastSeen } = data.payload as { userId: string; status: 'online' | 'offline'; lastSeen: string };
             setDirectConversations(prev => prev.map(conv => conv.user.id === userId ? { ...conv, user: { ...conv.user, status, lastSeen } } : conv));
+          } else if (data.type === 'mention') {
+            const payload = data.payload as { sender: string; roomId: string | null; conversationId: string | null; messageId: string; text: string };
+            const isActiveRoom = payload.roomId && payload.roomId === activeRoomRef.current;
+            const isActiveDm = payload.conversationId && payload.conversationId === activeConversationIdRef.current;
+            
+            if (localStorage.getItem('chat_notifications') === 'true' && (document.hidden || (!isActiveRoom && !isActiveDm))) {
+              const mutedRooms = JSON.parse(localStorage.getItem('chat_muted_rooms') ?? '[]');
+              const targetId = payload.roomId || payload.conversationId || '';
+              if (!mutedRooms.includes(targetId)) {
+                sendNotification(`You were mentioned by ${payload.sender}`, { body: payload.text });
+              }
+            }
           } else if (data.type === 'webrtc_signal') {
             const payload = data.payload as { conversationId: string, senderId: string, senderUsername: string, signalType: string, data: any };
             if (onWebRTCSignal) {
@@ -299,7 +344,20 @@ export function useChat(
     } catch (err) { console.error('Failed to start conversation:', err); }
   }, []);
 
-  const sendMessage = useCallback(async (inputValue: string, replyToId?: string) => {
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    try {
+      const { deleteDirectConversation } = await import('../lib/api');
+      await deleteDirectConversation(conversationId);
+      setDirectConversations(prev => prev.filter(c => c.id !== conversationId));
+      if (activeConversationIdRef.current === conversationId) {
+        setActiveConversationId(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
+  }, []);
+
+  const sendMessage = useCallback(async (inputValue: string, replyToId?: string, threadId?: string) => {
     if (!inputValue.trim() || !activeRoom || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     
     let linkPreview: any = undefined;
@@ -313,7 +371,7 @@ export function useChat(
       }
     }
     
-    wsRef.current.send(JSON.stringify({ type: 'chat', payload: { roomId: activeRoom, message: inputValue.trim(), messageType: 'text', replyTo: replyToId, linkPreview } }));
+    wsRef.current.send(JSON.stringify({ type: 'chat', payload: { roomId: activeRoom, message: inputValue.trim(), messageType: 'text', replyTo: replyToId, linkPreview, threadId } }));
     wsRef.current.send(JSON.stringify({ type: 'typing', payload: { roomId: activeRoom, isTyping: 'false' } }));
   }, [activeRoom]);
 
@@ -337,14 +395,14 @@ export function useChat(
     wsRef.current.send(JSON.stringify({ type: 'typing', payload: { roomId: activeRoom, isTyping: isTyping ? 'true' : 'false' } }));
   }, [activeRoom]);
 
-  const sendFileMessage = useCallback(async (file: File, caption?: string, replyToId?: string) => {
+  const sendFileMessage = useCallback(async (file: File, caption?: string, replyToId?: string, threadId?: string) => {
     if (!activeRoom || !token || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || `http://${window.location.hostname}:8080`; const apiBase = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
     const formData = new FormData(); formData.append('file', file);
     const res = await fetch(`${apiBase}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
     if (!res.ok) throw new Error(await res.text());
     const { url, fileName, fileType } = await res.json() as { url: string; fileName: string; fileType: 'image' | 'file' };
-    wsRef.current.send(JSON.stringify({ type: 'chat', payload: { roomId: activeRoom, message: caption ?? '', messageType: fileType, fileUrl: url, fileName, replyTo: replyToId } }));
+    wsRef.current.send(JSON.stringify({ type: 'chat', payload: { roomId: activeRoom, message: caption ?? '', messageType: fileType, fileUrl: url, fileName, replyTo: replyToId, threadId } }));
   }, [activeRoom, token]);
 
   const sendDirectMessage = useCallback(async (inputValue: string, replyToId?: string) => {
@@ -430,6 +488,11 @@ export function useChat(
     wsRef.current.send(JSON.stringify({ type: 'loadMoreRoomHistory', payload: { roomId, before: beforeDate.toISOString() } }));
   }, []);
 
+  const loadThreadMessages = useCallback((threadId: string, beforeDate?: Date) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({ type: 'loadThreadHistory', payload: { threadId, before: beforeDate?.toISOString() } }));
+  }, []);
+
   const loadMoreDmMessages = useCallback((conversationId: string, beforeDate: Date) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     wsRef.current.send(JSON.stringify({ type: 'loadMoreDmHistory', payload: { conversationId, before: beforeDate.toISOString() } }));
@@ -438,11 +501,11 @@ export function useChat(
   return {
     isConnected, joinedRooms, activeRoom, messagesByRoom, unreadByRoom, onlineUsersByRoom, typingUsersByRoom,
     activeSection, directConversations, activeConversationId, dmMessagesByConversation, dmTypingByConversation,
-    wsRef,
-    joinRoom, leaveRoom, switchRoom, selectConversation, startConversation,
+    threadMessages, wsRef,
+    joinRoom, leaveRoom, switchRoom, selectConversation, startConversation, deleteConversation,
     sendMessage, editMessage, deleteMessage, reactMessage, handleTyping, sendFileMessage,
     sendDirectMessage, sendDirectFileMessage, editDirectMessage, deleteDirectMessage, reactDirectMessage, handleDirectTyping,
-    loadMoreMessages, loadMoreDmMessages, userRooms, setUserRooms,
+    loadMoreMessages, loadMoreDmMessages, loadThreadMessages, userRooms, setUserRooms,
     onTyping: handleTyping,
     onDirectTyping: handleDirectTyping,
     setJoinedRooms, setActiveRoom, setMessagesByRoom, setUnreadByRoom, setOnlineUsersByRoom, setTypingUsersByRoom,

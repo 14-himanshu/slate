@@ -6,6 +6,9 @@ import {
   changePassword,
   updateAvatar,
   searchUsers,
+  saveMessage,
+  unsaveMessage,
+  getSavedMessages,
 } from "../services/user.service.js";
 
 /** GET /api/user/me */
@@ -22,10 +25,11 @@ export async function getMe(req: AuthRequest, res: Response): Promise<void> {
 /** PUT /api/user/update */
 export async function updateUser(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { username, bio, status } = req.body as {
+    const { username, bio, status, statusMessage } = req.body as {
       username?: string;
       bio?: string;
       status?: string;
+      statusMessage?: string;
     };
 
     const VALID_STATUSES = ["online", "offline", "busy", "away"];
@@ -51,10 +55,16 @@ export async function updateUser(req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    const updateData: { username?: string; bio?: string; status?: string } = {};
+    if (statusMessage !== undefined && statusMessage.length > 100) {
+      res.status(400).json({ error: "Status message must be 100 characters or fewer." });
+      return;
+    }
+
+    const updateData: { username?: string; bio?: string; status?: string; statusMessage?: string } = {};
     if (username !== undefined) updateData.username = username;
     if (bio !== undefined) updateData.bio = bio;
     if (status !== undefined) updateData.status = status;
+    if (statusMessage !== undefined) updateData.statusMessage = statusMessage;
 
     const user = await updateProfile(req.user.userId, updateData);
     res.json({ user });
@@ -141,6 +151,48 @@ export async function searchUsersHandler(req: AuthRequest, res: Response): Promi
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Search failed.";
+    res.status(500).json({ error: msg });
+  }
+}
+
+/** POST /api/user/bookmarks */
+export async function bookmarkMessage(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { messageId, type } = req.body as { messageId: string; type: 'room' | 'dm' };
+    if (!messageId || !type) {
+      res.status(400).json({ error: "messageId and type are required." });
+      return;
+    }
+    await saveMessage(req.user.userId, messageId, type);
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to save message.";
+    res.status(500).json({ error: msg });
+  }
+}
+
+/** DELETE /api/user/bookmarks/:messageId */
+export async function removeBookmark(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { messageId } = req.params as { messageId: string };
+    await unsaveMessage(req.user.userId, messageId);
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to unsave message.";
+    res.status(500).json({ error: msg });
+  }
+}
+
+/** GET /api/user/bookmarks */
+export async function fetchBookmarks(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const messages = await getSavedMessages(req.user.userId);
+    res.json({ messages: messages.map(m => ({
+      ...m,
+      id: m._id ? m._id.toString() : (m as any).id,
+    })) });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to fetch saved messages.";
     res.status(500).json({ error: msg });
   }
 }

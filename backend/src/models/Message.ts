@@ -1,6 +1,6 @@
 import mongoose, { type Document, Schema } from "mongoose";
 
-export type MessageType = "text" | "image" | "file";
+export type MessageType = "text" | "image" | "file" | "audio";
 
 export interface IReaction {
   icon: string;
@@ -27,6 +27,9 @@ export interface IMessage extends Document {
     image: string | null;
     url: string;
   };
+  threadId?: mongoose.Types.ObjectId | string;
+  threadReplyCount?: number;
+  lastThreadReplyAt?: Date;
 }
 
 const reactionSchema = new Schema<IReaction>({
@@ -40,7 +43,7 @@ const messageSchema = new Schema<IMessage>({
   userId:   { type: Schema.Types.ObjectId, ref: "User", required: true },
   username: { type: String, required: true },
   message:  { type: String, required: true, maxlength: 2000 },
-  type:     { type: String, enum: ["text", "image", "file"], default: "text" },
+  type:     { type: String, enum: ["text", "image", "file", "audio"], default: "text" },
   fileUrl:  { type: String },
   fileName: { type: String },
   timestamp: { type: Date, default: () => new Date() },
@@ -53,7 +56,10 @@ const messageSchema = new Schema<IMessage>({
     description: String,
     image: String,
     url: String
-  }
+  },
+  threadId: { type: Schema.Types.ObjectId, ref: "Message" },
+  threadReplyCount: { type: Number, default: 0 },
+  lastThreadReplyAt: { type: Date }
 });
 
 messageSchema.index({ roomId: 1, timestamp: 1 });

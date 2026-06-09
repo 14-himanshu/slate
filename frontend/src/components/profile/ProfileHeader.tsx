@@ -19,25 +19,41 @@ export default function ProfileHeader({ profile, messageCount, roomCount }: Prop
   const joined = new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div style={{ padding: '28px 20px 24px', borderBottom: '1px solid var(--border)' }}>
-      {/* Avatar + info */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
-        <div style={{ position: 'relative' }}>
-          <Avatar name={profile.username} src={profile.avatar} size={56} circle />
-          <span style={{
-            position: 'absolute', bottom: 2, right: 2,
-            width: 12, height: 12, borderRadius: '50%',
-            background: status.dot,
-            border: '2px solid var(--bg-surface)',
-          }} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ borderBottom: '1px solid var(--border)' }}>
+      {/* Banner */}
+      <div style={{
+        height: 120,
+        background: 'linear-gradient(135deg, var(--accent) 0%, #a855f7 100%)',
+        position: 'relative'
+      }} />
+
+      <div style={{ padding: '0 20px 24px', position: 'relative' }}>
+        {/* Avatar + info */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginTop: -32, marginBottom: 20 }}>
+          <div style={{ position: 'relative', padding: 4, background: 'var(--bg-surface)', borderRadius: '50%' }}>
+            <Avatar name={profile.username} src={profile.avatar} size={80} circle />
+            <span style={{
+              position: 'absolute', bottom: 6, right: 6,
+              width: 16, height: 16, borderRadius: '50%',
+              background: status.dot,
+              border: '3px solid var(--bg-surface)',
+            }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0, paddingBottom: 8 }}>
           <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: 4 }}>
             {profile.username}
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: status.dot, flexShrink: 0 }} />
             <span style={{ fontSize: 12, color: status.color, fontWeight: 500 }}>{status.label}</span>
+            {profile.statusMessage && (
+              <>
+                <span style={{ color: 'var(--text-muted)' }}>·</span>
+                <span style={{ fontSize: 12, color: 'var(--text-primary)', fontStyle: 'italic' }}>
+                  &ldquo;{profile.statusMessage}&rdquo;
+                </span>
+              </>
+            )}
           </div>
           {profile.bio && (
             <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>{profile.bio}</p>
@@ -75,6 +91,7 @@ export default function ProfileHeader({ profile, messageCount, roomCount }: Prop
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

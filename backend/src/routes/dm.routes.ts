@@ -7,7 +7,8 @@ import {
   listConversations,
   createConversation,
   getConversationMessages,
-  markConversationAsRead
+  markConversationAsRead,
+  hideConversation
 } from "../controllers/dm.controller.js";
 
 const router = Router();
@@ -24,5 +25,6 @@ router.get("/conversations", requireAuth, wrap(listConversations));
 router.post("/conversations", requireAuth, wrap(createConversation));
 router.get("/conversations/:id/messages", requireAuth, wrap(getConversationMessages));
 router.post("/conversations/:id/read", requireAuth, wrap(markConversationAsRead));
+router.delete("/conversations/:id", requireAuth, wrap(hideConversation));
 
 export default router;

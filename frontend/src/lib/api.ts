@@ -52,6 +52,7 @@ export async function updateProfile(body: {
   username?: string;
   bio?: string;
   status?: string;
+  statusMessage?: string;
 }): Promise<UserProfile> {
   const res = await fetch(`${API_BASE}/api/user/update`, {
     method: 'PUT',
@@ -144,6 +145,14 @@ export async function markDirectConversationRead(conversationId: string): Promis
   await handleResponse(res);
 }
 
+export async function deleteDirectConversation(conversationId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/dm/conversations/${conversationId}`, {
+    method: 'DELETE',
+    headers: authHeaders()
+  });
+  await handleResponse(res);
+}
+
 export async function fetchLinkPreview(url: string): Promise<{ title: string | null; description: string | null; image: string | null; url: string }> {
   const res = await fetch(`${API_BASE}/api/metadata/link-preview?url=${encodeURIComponent(url)}`, { headers: authHeaders() });
   const data = await handleResponse<{ metadata: { title: string | null; description: string | null; image: string | null; url: string } }>(res);
@@ -169,4 +178,31 @@ export async function getRoom(roomId: string): Promise<RoomSummary> {
 export async function getUserRooms(): Promise<RoomSummary[]> {
   const res = await fetch(`${API_BASE}/api/rooms/user`, { headers: authHeaders() });
   return await handleResponse<RoomSummary[]>(res);
+}
+
+// ── Bookmarks ────────────────────────────────────────────────────────
+
+import type { Message } from '../types';
+
+export async function fetchSavedMessages(): Promise<Message[]> {
+  const res = await fetch(`${API_BASE}/api/user/bookmarks`, { headers: authHeaders() });
+  const data = await handleResponse<{ messages: Message[] }>(res);
+  return data.messages;
+}
+
+export async function saveMessage(messageId: string, type: 'room' | 'dm'): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/user/bookmarks`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ messageId, type })
+  });
+  await handleResponse(res);
+}
+
+export async function unsaveMessage(messageId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/user/bookmarks/${encodeURIComponent(messageId)}`, {
+    method: 'DELETE',
+    headers: authHeaders()
+  });
+  await handleResponse(res);
 }

@@ -20,7 +20,7 @@ export interface DirectConversationSummary {
   lastMessage?: {
     id: string;
     text: string;
-    type: "text" | "image" | "file";
+    type: "text" | "image" | "file" | "audio";
     fileName?: string;
     timestamp: string;
     senderId: string;
@@ -57,10 +57,16 @@ export async function findOrCreateDirectConversation(
   });
 
   const now = new Date();
-  await DirectConversationMember.create([
-    { conversationId: conversation._id, userId: new mongoose.Types.ObjectId(userId), lastReadAt: now },
-    { conversationId: conversation._id, userId: new mongoose.Types.ObjectId(otherUserId), lastReadAt: now }
-  ]);
+  await DirectConversationMember.findOneAndUpdate(
+    { conversationId: conversation._id, userId: new mongoose.Types.ObjectId(userId) },
+    { $set: { visible: true }, $setOnInsert: { lastReadAt: now } },
+    { upsert: true }
+  );
+  await DirectConversationMember.findOneAndUpdate(
+    { conversationId: conversation._id, userId: new mongoose.Types.ObjectId(otherUserId) },
+    { $set: { visible: true }, $setOnInsert: { lastReadAt: now } },
+    { upsert: true }
+  );
 
   return conversation;
 }
@@ -88,20 +94,34 @@ export async function markConversationRead(
   );
 }
 
+export async function hideDirectConversation(
+  conversationId: string,
+  userId: string
+): Promise<void> {
+  await DirectConversationMember.findOneAndUpdate(
+    { conversationId, userId },
+    { visible: false }
+  );
+}
+
 export async function listDirectConversations(userId: string): Promise<DirectConversationSummary[]> {
   const userObjectId = new mongoose.Types.ObjectId(userId);
-  const conversations = await DirectConversation.find({ participants: userObjectId })
+  
+  const memberDocs = await DirectConversationMember.find({
+    userId: userObjectId,
+    visible: true
+  }).lean();
+  
+  if (!memberDocs.length) return [];
+  
+  const conversationIds = memberDocs.map(d => d.conversationId);
+
+  const conversations = await DirectConversation.find({ _id: { $in: conversationIds } })
     .populate("lastMessage")
     .sort({ lastMessageAt: -1, updatedAt: -1 })
     .lean();
 
   if (!conversations.length) return [];
-
-  const conversationIds = conversations.map(c => c._id.toString());
-  const memberDocs = await DirectConversationMember.find({
-    conversationId: { $in: conversationIds },
-    userId: userObjectId
-  }).lean();
 
   const lastReadMap = new Map<string, Date>();
   for (const doc of memberDocs) {

@@ -1,6 +1,6 @@
 // Shared TypeScript types for the entire frontend
 
-export type MessageType = "text" | "image" | "file";
+export type MessageType = "text" | "image" | "file" | "audio";
 
 export interface Reaction {
   icon: string;
@@ -30,6 +30,10 @@ export interface Message {
     image: string | null;
     url: string;
   };
+  threadId?: string;
+  threadReplyCount?: number;
+  lastThreadReplyAt?: string;
+  savedAt?: Date | string;
 }
 
 export type UserStatus = "online" | "offline" | "busy" | "away";
@@ -40,6 +44,7 @@ export interface UserProfile {
   avatar?: string;
   bio?: string;
   status: UserStatus;
+  statusMessage?: string;
   publicKey?: string;
   lastSeen: string;
   createdAt: string;
@@ -50,6 +55,7 @@ export interface UserSummary {
   username: string;
   avatar?: string;
   status?: UserStatus;
+  statusMessage?: string;
   lastSeen?: string;
   publicKey?: string;
 }
@@ -81,6 +87,7 @@ export interface DirectMessage {
     encryptedKeySender: string;
     encryptedKeyRecipient: string;
   };
+  seenAt?: string;
 }
 
 export interface DirectConversationSummary {

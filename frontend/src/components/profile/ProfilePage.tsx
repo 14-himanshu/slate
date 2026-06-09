@@ -81,22 +81,12 @@ export default function ProfilePage({
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 100, animation: 'fadeIn 0.2s ease both' }}
-      />
-
-      {/* Panel */}
       <div style={{
-        position: 'fixed', top: 0, right: 0, bottom: 0,
-        width: 'min(400px, 100vw)',
-        background: 'var(--bg-surface)',
-        borderLeft: '1px solid var(--border)',
-        zIndex: 101,
         display: 'flex', flexDirection: 'column',
-        boxShadow: 'var(--shadow-xl)',
-        animation: 'slideInRight 0.25s ease both',
+        background: 'var(--bg-surface)',
+        borderRadius: 12,
+        overflow: 'hidden',
+        height: '100%',
       }}>
 
         {/* Header */}

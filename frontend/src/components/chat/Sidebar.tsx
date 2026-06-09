@@ -17,7 +17,10 @@ interface SidebarProps {
     activeSection: 'rooms' | 'dm';
     onSelectConversation: (conversationId: string) => void;
     onStartConversation: (userId: string) => void;
+    onDeleteConversation: (conversationId: string) => void;
     onSearchUsers: (query: string) => Promise<UserSummary[]>;
+    onOpenSavedItems: () => void;
+    onOpenProfile: () => void;
 }
 
 function formatTime(value?: string) {
@@ -45,15 +48,17 @@ export function Sidebar({
     userRooms, joinedRooms, activeRoom, unreadByRoom, currentUser,
     onSwitch, onLeave, onJoin,
     directConversations, activeConversationId, activeSection,
-    onSelectConversation, onStartConversation, onSearchUsers,
+    onSelectConversation, onStartConversation, onDeleteConversation, onSearchUsers,
+    onOpenSavedItems, onOpenProfile
 }: SidebarProps) {
     const [showRoomModal, setShowRoomModal] = useState(false);
     const [hoveredRoom, setHoveredRoom] = useState<string | null>(null);
     const [hoveredDm, setHoveredDm] = useState<string | null>(null);
-    const [dismissedDMs, setDismissedDMs] = useState<string[]>([]);
     const [globalSearch, setGlobalSearch] = useState('');
     const [dmResults, setDmResults] = useState<UserSummary[]>([]);
     const [dmSearching, setDmSearching] = useState(false);
+    const [isRoomsOpen, setIsRoomsOpen] = useState(true);
+    const [isDMsOpen, setIsDMsOpen] = useState(true);
 
     // Debounced global user search
     useEffect(() => {
@@ -78,9 +83,8 @@ export function Sidebar({
     const filteredRooms = enrichedRooms.filter(r => r.name.toLowerCase().includes(lq) || r.roomId.toLowerCase().includes(lq));
     const filteredConvos = useMemo(() => {
         return directConversations
-            .filter((c: DirectConversationSummary) => !dismissedDMs.includes(c.id))
             .filter((c: DirectConversationSummary) => c.user.username.toLowerCase().includes(lq));
-    }, [directConversations, dismissedDMs, lq]);
+    }, [directConversations, lq]);
 
     return (
         <aside style={{
@@ -99,7 +103,10 @@ export function Sidebar({
                 borderBottom: '1px solid var(--border)',
                 flexShrink: 0,
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: '100%' }}>
+                <div 
+                    onClick={onOpenProfile}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', height: '100%' }}
+                >
                     <BrandMark size={28} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: '100%' }}>
                         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Slate</div>
@@ -143,20 +150,49 @@ export function Sidebar({
             {/* ── Scrollable content ──────────────────────── */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 16px' }}>
 
+                {/* SAVED ITEMS section */}
+                <div style={{ marginBottom: 16, marginTop: 8 }}>
+                    <button
+                        onClick={onOpenSavedItems}
+                        style={{
+                            width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '8px 12px', background: 'transparent', border: 'none',
+                            borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                            color: 'var(--text-primary)',
+                            transition: 'all 0.15s ease', textAlign: 'left',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                        <span style={{ color: 'var(--accent)' }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>Saved Items</span>
+                    </button>
+                </div>
+
                 {/* ROOMS section */}
                 <div style={{ marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Rooms</span>
-                        <IconButton label="Join or create a room" size="sm" onClick={() => setShowRoomModal(true)}>
+                    <div 
+                        onClick={() => setIsRoomsOpen(!isRoomsOpen)}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: isRoomsOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Rooms</span>
+                        </div>
+                        <IconButton label="Join or create a room" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowRoomModal(true); }}>
                             <Icon d={Icons.plus} size={13} />
                         </IconButton>
                     </div>
 
-                    {filteredRooms.length === 0 && (
-                        <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                            {joinedRooms.length === 0 ? 'No rooms joined yet.' : 'No results.'}
-                        </div>
-                    )}
+                    {isRoomsOpen && (
+                        <div style={{ paddingBottom: 8 }}>
+                            {filteredRooms.length === 0 && (
+                                <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                    {joinedRooms.length === 0 ? 'No rooms joined yet.' : 'No results.'}
+                                </div>
+                            )}
 
                     {filteredRooms.map(room => {
                         const active = room.roomId === activeRoom && activeSection === 'rooms';
@@ -213,13 +249,21 @@ export function Sidebar({
                                 </div>
                             </div>
                         );
-                    })}
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {/* DIRECT MESSAGES section */}
                 <div style={{ marginTop: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Direct Messages</span>
+                    <div 
+                        onClick={() => setIsDMsOpen(!isDMsOpen)}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: isDMsOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Direct Messages</span>
+                        </div>
                     </div>
 
                     {/* DM Search Results */}
@@ -266,32 +310,34 @@ export function Sidebar({
                         </div>
                     )}
 
-                    {filteredConvos.length === 0 && (
-                        <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                            {directConversations.length === 0 ? 'No conversations yet.' : 'No results.'}
-                        </div>
-                    )}
+                    {isDMsOpen && (
+                        <div style={{ paddingBottom: 8 }}>
+                            {filteredConvos.length === 0 && (
+                                <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                    {directConversations.length === 0 ? 'No conversations yet.' : 'No results.'}
+                                </div>
+                            )}
 
-                    {filteredConvos.map(convo => {
-                        const active = activeSection === 'dm' && convo.id === activeConversationId;
-                        const unread = convo.unreadCount ?? 0;
-                        const preview = getLastMessagePreview(convo, currentUser);
-                        const ts = formatTime(convo.lastMessageAt ?? convo.lastMessage?.timestamp);
-                        const hovered = hoveredDm === convo.id;
-                        return (
-                            <div
-                                key={convo.id}
-                                onClick={() => onSelectConversation(convo.id)}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: 12,
-                                    padding: '8px 12px',
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer',
-                                    marginBottom: 4,
-                                    background: active ? 'var(--accent-bg)' : hovered ? 'var(--bg-hover)' : 'transparent',
-                                    transition: 'all 0.15s ease',
-                                    position: 'relative',
-                                }}
+                            {filteredConvos.map(convo => {
+                                const active = activeSection === 'dm' && convo.id === activeConversationId;
+                                const unread = convo.unreadCount ?? 0;
+                                const preview = getLastMessagePreview(convo, currentUser);
+                                const ts = formatTime(convo.lastMessageAt ?? convo.lastMessage?.timestamp);
+                                const hovered = hoveredDm === convo.id;
+                                return (
+                                    <div
+                                        key={convo.id}
+                                        onClick={() => onSelectConversation(convo.id)}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: 12,
+                                            padding: '8px 12px',
+                                            borderRadius: 'var(--radius-md)',
+                                            cursor: 'pointer',
+                                            marginBottom: 4,
+                                            background: active ? 'var(--accent-bg)' : hovered ? 'var(--bg-hover)' : 'transparent',
+                                            transition: 'all 0.15s ease',
+                                            position: 'relative',
+                                        }}
                                 onMouseEnter={() => setHoveredDm(convo.id)}
                                 onMouseLeave={() => setHoveredDm(null)}
                             >
@@ -337,7 +383,7 @@ export function Sidebar({
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setDismissedDMs(prev => [...prev, convo.id]);
+                                            onDeleteConversation(convo.id);
                                         }}
                                         title="Dismiss chat"
                                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 3, borderRadius: 4, display: 'flex' }}
@@ -349,11 +395,53 @@ export function Sidebar({
                                 )}
                             </div>
                         );
-                    })}
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 <div style={{ height: 16 }} />
             </div>
+
+            {/* USER PROFILE bottom bar */}
+            <div 
+                onClick={onOpenProfile}
+                style={{
+                    padding: '12px 16px',
+                    borderTop: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    background: 'var(--bg-surface)',
+                    flexShrink: 0,
+                    transition: 'background 0.15s ease'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-surface)'}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <div style={{ position: 'relative' }}>
+                        <Avatar name={currentUser ?? ''} size={32} circle />
+                        <span style={{
+                            position: 'absolute', bottom: 0, right: 0,
+                            width: 10, height: 10, borderRadius: '50%',
+                            background: 'var(--success)',
+                            border: '2px solid var(--bg-surface)'
+                        }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {currentUser}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Online</div>
+                    </div>
+                </div>
+                <div style={{ color: 'var(--text-muted)', display: 'flex' }}>
+                    <Icon d={Icons.settings} size={16} />
+                </div>
+            </div>
+
 
             {showRoomModal && (
                 <RoomModal

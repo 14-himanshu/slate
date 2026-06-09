@@ -1,6 +1,6 @@
 import mongoose, { type Document, Schema } from "mongoose";
 
-export type DirectMessageType = "text" | "image" | "file";
+export type DirectMessageType = "text" | "image" | "file" | "audio";
 
 export interface IDirectReaction {
   icon: string;
@@ -27,6 +27,7 @@ export interface IDirectMessage extends Document {
     encryptedKeySender: string;
     encryptedKeyRecipient: string;
   };
+  seenAt?: Date;
 }
 
 const directReactionSchema = new Schema<IDirectReaction>(
@@ -48,7 +49,7 @@ const directMessageSchema = new Schema<IDirectMessage>({
   senderId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   username: { type: String, required: true },
   message: { type: String, required: true, maxlength: 2000 },
-  type: { type: String, enum: ["text", "image", "file"], default: "text" },
+  type: { type: String, enum: ["text", "image", "file", "audio"], default: "text" },
   fileUrl: { type: String },
   fileName: { type: String },
   timestamp: { type: Date, default: () => new Date() },
@@ -62,6 +63,7 @@ const directMessageSchema = new Schema<IDirectMessage>({
     encryptedKeySender: String,
     encryptedKeyRecipient: String,
   },
+  seenAt: { type: Date },
 });
 
 directMessageSchema.index({ conversationId: 1, timestamp: 1 });

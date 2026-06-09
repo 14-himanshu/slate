@@ -16,27 +16,29 @@ const STATUSES: { value: UserStatus; label: string; color: string }[] = [
 ];
 
 export default function ProfileForm({ profile, onUpdate, onToast }: Props) {
-  const [username, setUsername] = useState(profile.username);
-  const [bio,      setBio]      = useState(profile.bio ?? '');
-  const [status,   setStatus]   = useState<UserStatus>(profile.status);
-  const [saving,   setSaving]   = useState(false);
-  const [dirty,    setDirty]    = useState(false);
+  const [username,      setUsername]      = useState(profile.username);
+  const [bio,           setBio]           = useState(profile.bio ?? '');
+  const [status,        setStatus]        = useState<UserStatus>(profile.status);
+  const [statusMessage, setStatusMessage] = useState(profile.statusMessage ?? '');
+  const [saving,        setSaving]        = useState(false);
+  const [dirty,         setDirty]         = useState(false);
 
   // Track changes
   useEffect(() => {
     setDirty(
       username !== profile.username ||
       bio !== (profile.bio ?? '') ||
-      status !== profile.status
+      status !== profile.status ||
+      statusMessage !== (profile.statusMessage ?? '')
     );
-  }, [username, bio, status, profile]);
+  }, [username, bio, status, statusMessage, profile]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!dirty || saving) return;
     setSaving(true);
     try {
-      const updated = await updateProfile({ username, bio, status });
+      const updated = await updateProfile({ username, bio, status, statusMessage });
       onUpdate(updated);
       onToast('Profile updated!', 'success');
       // Sync localStorage username if changed
@@ -131,6 +133,20 @@ export default function ProfileForm({ profile, onUpdate, onToast }: Props) {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Status Message */}
+      <div>
+        <label style={labelStyle}>Status Message <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}>({statusMessage.length}/100)</span></label>
+        <input
+          style={inputStyle}
+          value={statusMessage}
+          onChange={e => setStatusMessage(e.target.value)}
+          maxLength={100}
+          placeholder="What's your status?"
+          onFocus={e => { e.target.style.borderColor = 'var(--border-focus)'; e.target.style.boxShadow = '0 0 0 2px var(--accent-bg)'; }}
+          onBlur={e  => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+        />
       </div>
 
       {/* Save button */}

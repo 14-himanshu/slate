@@ -102,3 +102,21 @@ export async function markConversationAsRead(req: AuthRequest, res: Response): P
   await markConversationRead(conversationId, req.user.userId);
   res.json({ ok: true });
 }
+
+export async function hideConversation(req: AuthRequest, res: Response): Promise<void> {
+  const conversationId = getSingleParam(req.params["id"]);
+  if (!conversationId) {
+    res.status(400).json({ error: "conversation id is required." });
+    return;
+  }
+
+  const canAccess = await ensureConversationAccess(conversationId, req.user.userId);
+  if (!canAccess) {
+    res.status(403).json({ error: "You do not have access to this conversation." });
+    return;
+  }
+
+  const { hideDirectConversation } = await import("../services/direct-conversation.service.js");
+  await hideDirectConversation(conversationId, req.user.userId);
+  res.json({ ok: true });
+}

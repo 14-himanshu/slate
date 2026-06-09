@@ -2,13 +2,14 @@ import { WebSocketServer, WebSocket } from "ws";
 import type { Server } from "http";
 import type { IncomingMessage } from "http";
 import { authenticateWsRequest } from "../middleware/auth.middleware.js";
-import { saveMessage, getRoomHistory, editMessage, deleteMessage, addReaction } from "../services/message.service.js";
+import { saveMessage, getRoomHistory, editMessage, deleteMessage, addReaction, getThreadHistory } from "../services/message.service.js";
 import {
   saveDirectMessage,
   getDirectHistory,
   editDirectMessage,
   deleteDirectMessage,
-  addDirectReaction
+  addDirectReaction,
+  markMessagesSeenByUser
 } from "../services/direct-message.service.js";
 import {
   ensureConversationAccess,
@@ -67,6 +68,33 @@ function broadcastPresence(userId: string, status: "online" | "offline"): void {
   const lastSeen = new Date().toISOString();
   for (const user of connectedUsers) {
     send(user.socket, { type: "presence", payload: { userId, status, lastSeen } });
+  }
+}
+
+const MENTION_REGEX = /(?:^|\s)@([A-Za-z0-9_]+)/g;
+
+function extractMentions(text: string): string[] {
+  const matches = [...text.matchAll(MENTION_REGEX)];
+  return Array.from(new Set(matches.map(m => m[1] as string)));
+}
+
+function notifyMentions(text: string, senderUsername: string, roomId: string | null, conversationId: string | null, msgId: string) {
+  const mentionedUsernames = extractMentions(text);
+  for (const uname of mentionedUsernames) {
+    if (uname === senderUsername) continue;
+    const targets = connectedUsers.filter(u => u.username === uname);
+    for (const target of targets) {
+      send(target.socket, {
+        type: "mention",
+        payload: {
+          sender: senderUsername,
+          roomId,
+          conversationId,
+          messageId: msgId,
+          text
+        }
+      });
+    }
   }
 }
 
@@ -140,17 +168,34 @@ export function setupWebSocketServer(httpServer: Server): void {
 
       // ── LOAD MORE ROOM HISTORY ─────────────────────────────
       if (parsed.type === "loadMoreRoomHistory") {
-        const roomId = parsed.payload?.["roomId"]?.trim().toUpperCase();
-        const beforeString = parsed.payload?.["before"];
-        
-        if (!roomId || !user.rooms.has(roomId) || !beforeString) return;
+        const roomId = parsed.payload["roomId"]?.trim().toUpperCase();
+        const before = parsed.payload["before"]; // ISO string
 
-        try {
-          const beforeDate = new Date(beforeString);
-          const history = await getRoomHistory(roomId, beforeDate);
-          send(socket, { type: "historyLoaded", payload: { roomId, messages: history } });
-        } catch (err) {
-          console.error("Failed to load more room history:", err);
+        if (roomId && user.rooms.has(roomId) && before) {
+          try {
+            const date = new Date(before);
+            const messages = await getRoomHistory(roomId, date);
+            send(socket, { type: "historyLoaded", payload: { roomId, messages } });
+          } catch (err) {
+            console.error("Failed to load more room history:", err);
+          }
+        }
+        return;
+      }
+
+      // ── LOAD THREAD HISTORY ─────────────────────────────────
+      if (parsed.type === "loadThreadHistory") {
+        const threadId = parsed.payload["threadId"];
+        const before = parsed.payload["before"]; // Optional ISO string
+
+        if (threadId) {
+          try {
+            const date = before ? new Date(before) : undefined;
+            const messages = await getThreadHistory(threadId, date);
+            send(socket, { type: "threadHistoryLoaded", payload: { threadId, messages } });
+          } catch (err) {
+            console.error("Failed to load thread history:", err);
+          }
         }
         return;
       }
@@ -228,7 +273,7 @@ export function setupWebSocketServer(httpServer: Server): void {
       if (parsed.type === "dmMessage") {
         const conversationId = parsed.payload?.["conversationId"];
         const message = parsed.payload?.["message"]?.trim() ?? "";
-        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file") ?? "text";
+        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file" | "audio") ?? "text";
         const fileUrl = parsed.payload?.["fileUrl"];
         const fileName = parsed.payload?.["fileName"];
         const replyTo = parsed.payload?.["replyTo"];
@@ -272,6 +317,10 @@ export function setupWebSocketServer(httpServer: Server): void {
 
           );
           broadcastToConversation(conversationId, { type: "dmMessage", payload: savedMessage });
+          
+          if (!isE2EE && message) {
+            notifyMentions(message, username, null, conversationId, savedMessage.id.toString());
+          }
         } catch (err) {
           console.error("Failed to save DM:", err);
           send(socket, { type: "error", payload: { message: "Failed to send direct message." } });
@@ -370,7 +419,17 @@ export function setupWebSocketServer(httpServer: Server): void {
         const conversationId = parsed.payload?.["conversationId"];
         if (conversationId && user.conversations.has(conversationId)) {
           await markConversationRead(conversationId, userId);
+          // Mark individual messages as seen and get their IDs
+          const seenMessageIds = await markMessagesSeenByUser(conversationId, userId);
+          // Broadcast unread count reset to this user
           broadcastToConversation(conversationId, { type: "dmRead", payload: { conversationId, userId } });
+          // Broadcast seen ticks to both participants if there were messages marked
+          if (seenMessageIds.length > 0) {
+            broadcastToConversation(conversationId, {
+              type: "dmReadUpdate",
+              payload: { conversationId, seenMessageIds, seenAt: new Date().toISOString() }
+            });
+          }
         }
         return;
       }
@@ -379,10 +438,11 @@ export function setupWebSocketServer(httpServer: Server): void {
       if (parsed.type === "chat") {
         const roomId      = parsed.payload?.["roomId"]?.trim().toUpperCase();
         const message     = parsed.payload?.["message"]?.trim() ?? "";
-        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file") ?? "text";
+        const messageType = (parsed.payload?.["messageType"] as "text" | "image" | "file" | "audio") ?? "text";
         const fileUrl     = parsed.payload?.["fileUrl"];
         const fileName    = parsed.payload?.["fileName"];
         const replyTo     = parsed.payload?.["replyTo"];
+        const threadId    = parsed.payload?.["threadId"];
         const linkPreviewRaw = parsed.payload?.["linkPreview"];
         let linkPreview: { title: string | null; description: string | null; image: string | null; url: string; } | undefined;
 
@@ -406,12 +466,15 @@ export function setupWebSocketServer(httpServer: Server): void {
         if (!message && !fileUrl) return;
 
         try {
-          const savedMessage = await saveMessage(roomId, userId, username, message || fileName || "file", messageType, fileUrl, fileName, replyTo, linkPreview);
+          const savedMessage = await saveMessage(roomId, userId, username, message || fileName || "file", messageType, fileUrl, fileName, replyTo, linkPreview, threadId);
           // Broadcast the fully populated message
           broadcastToRoom(roomId, {
             type:    "chat",
             payload: savedMessage,
           });
+          if (message) {
+            notifyMentions(message, username, roomId, null, savedMessage.id.toString());
+          }
         } catch (err) {
           console.error("Failed to save message:", err);
           send(socket, { type: "error", payload: { message: "Failed to send message." } });
