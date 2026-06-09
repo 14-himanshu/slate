@@ -330,10 +330,11 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                                                         const isMe = mUser === localStorage.getItem('chat_username');
                                                         return (
                                                             <span style={{
-                                                                background: isMe ? 'var(--warning)' : 'rgba(79, 110, 247, 0.2)',
-                                                                color: isMe ? '#000' : 'var(--accent)',
-                                                                padding: '0 4px', borderRadius: 4, fontWeight: 600,
-                                                                display: 'inline-block', lineHeight: 1.2
+                                                                background: isMe ? 'rgba(245, 158, 11, 0.25)' : 'rgba(79, 110, 247, 0.18)',
+                                                                color: isMe ? '#F59E0B' : 'var(--accent)',
+                                                                border: `1px solid ${isMe ? 'rgba(245,158,11,0.4)' : 'rgba(79,110,247,0.3)'}`,
+                                                                padding: '0 5px', borderRadius: 5, fontWeight: 700,
+                                                                display: 'inline-block', lineHeight: 1.4, fontSize: '0.92em'
                                                             }}>
                                                                 {children}
                                                             </span>
@@ -358,10 +359,11 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                                                         const isMe = mUser === localStorage.getItem('chat_username');
                                                         return (
                                                             <span style={{
-                                                                background: isMe ? 'var(--warning)' : 'rgba(79, 110, 247, 0.2)',
-                                                                color: isMe ? '#000' : 'var(--accent)',
-                                                                padding: '0 4px', borderRadius: 4, fontWeight: 600,
-                                                                display: 'inline-block', lineHeight: 1.2
+                                                                background: isMe ? 'rgba(245, 158, 11, 0.25)' : 'rgba(79, 110, 247, 0.18)',
+                                                                color: isMe ? '#F59E0B' : 'var(--accent)',
+                                                                border: `1px solid ${isMe ? 'rgba(245,158,11,0.4)' : 'rgba(79,110,247,0.3)'}`,
+                                                                padding: '0 5px', borderRadius: 5, fontWeight: 700,
+                                                                display: 'inline-block', lineHeight: 1.4, fontSize: '0.92em'
                                                             }}>
                                                                 {children}
                                                             </span>

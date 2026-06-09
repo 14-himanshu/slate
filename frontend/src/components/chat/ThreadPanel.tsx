@@ -42,10 +42,16 @@ export function ThreadPanel({ parentMessage, messages, username, onClose, onSend
       animation: 'slideInRight 0.2s ease-out'
     }}>
       {/* Header */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{
+        padding: '0 16px', height: 56, borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexShrink: 0, gap: 8
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Thread</h3>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>#{parentMessage.roomId}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em' }}>Thread</h3>
         </div>
         <IconButton label="Close Thread" onClick={onClose} size="sm">
           <Icon d={Icons.x} size={18} />
@@ -71,14 +77,16 @@ export function ThreadPanel({ parentMessage, messages, username, onClose, onSend
           />
         </div>
 
-        {/* Replies */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', marginBottom: 16 }}>
-          <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-            {messages.length} {messages.length === 1 ? 'reply' : 'replies'}
-          </span>
-          <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
-        </div>
+        {/* Replies divider - only shown when there are replies */}
+        {messages.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', marginBottom: 8 }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              {messages.length} {messages.length === 1 ? 'reply' : 'replies'}
+            </span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          </div>
+        )}
 
         {messages.map((msg, idx) => {
           const mine = msg.username === username;

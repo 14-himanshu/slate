@@ -207,7 +207,7 @@ export function MessageInput({
         : 'Write a message…';
 
     return (
-        <footer style={{ padding: '0 16px 14px', background: 'var(--bg-base)', flexShrink: 0 }}>
+        <footer style={{ padding: '0 16px 14px', background: 'var(--bg-base)', flexShrink: 0, position: 'relative' }}>
             {/* Typing indicator zone directly above input */}
             <div style={{ height: 20, display: 'flex', alignItems: 'center', marginBottom: 2, paddingLeft: 8 }}>
                 {activeTypingUsers.length > 0 && (
@@ -292,39 +292,50 @@ export function MessageInput({
                     </button>
                 </div>
             )}
-            
+
             {/* Mention Autocomplete Popover */}
-            {mentionState.active && availableMentions && availableMentions.length > 0 && (
-                (() => {
-                    const filtered = availableMentions.filter((u: string) => u.toLowerCase().includes(mentionState.query.toLowerCase()));
-                    if (filtered.length === 0) return null;
-                    return (
-                        <div style={{
-                            position: 'absolute', bottom: '100%', left: 40, marginBottom: 8,
-                            background: 'var(--bg-surface)', border: '1px solid var(--border)',
-                            borderRadius: 8, padding: '4px', boxShadow: 'var(--shadow-lg)',
-                            zIndex: 50, display: 'flex', flexDirection: 'column', gap: 2,
-                            minWidth: 160, maxHeight: 200, overflowY: 'auto'
-                        }}>
-                            {filtered.map((username: string, idx: number) => (
-                                <button
-                                    key={username}
-                                    onClick={() => insertMention(username)}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: 8,
-                                        padding: '6px 10px', background: idx === mentionState.index ? 'var(--bg-hover)' : 'transparent',
-                                        border: 'none', borderRadius: 4, cursor: 'pointer',
-                                        textAlign: 'left', width: '100%', transition: 'background 0.1s'
-                                    }}
-                                    onMouseEnter={() => setMentionState(s => ({ ...s, index: idx }))}
-                                >
-                                    <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>{username}</span>
-                                </button>
-                            ))}
-                        </div>
-                    );
-                })()
-            )}
+            {mentionState.active && (() => {
+                const filtered = availableMentions.filter((u: string) =>
+                    u.toLowerCase().includes(mentionState.query.toLowerCase())
+                );
+                if (filtered.length === 0) return null;
+                return (
+                    <div style={{
+                        position: 'absolute', bottom: '100%', left: 16, right: 16, marginBottom: 6,
+                        background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                        borderRadius: 10, padding: '4px', boxShadow: 'var(--shadow-lg)',
+                        zIndex: 100, display: 'flex', flexDirection: 'column', gap: 2,
+                        maxHeight: 200, overflowY: 'auto'
+                    }}>
+                        {filtered.map((uname: string, idx: number) => (
+                            <button
+                                key={uname}
+                                onMouseDown={(e) => { e.preventDefault(); insertMention(uname); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    padding: '7px 10px',
+                                    background: idx === mentionState.index ? 'var(--bg-hover)' : 'transparent',
+                                    border: 'none', borderRadius: 6, cursor: 'pointer',
+                                    textAlign: 'left', width: '100%', transition: 'background 0.1s'
+                                }}
+                                onMouseEnter={() => setMentionState(s => ({ ...s, index: idx }))}
+                            >
+                                <div style={{
+                                    width: 26, height: 26, borderRadius: '50%', background: 'var(--accent)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0,
+                                    letterSpacing: '0.02em'
+                                }}>
+                                    {uname.slice(0, 2).toUpperCase()}
+                                </div>
+                                <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
+                                    <span style={{ color: 'var(--accent)' }}>@</span>{uname}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                );
+            })()}
 
             {/* Main input row */}
             <div style={{
