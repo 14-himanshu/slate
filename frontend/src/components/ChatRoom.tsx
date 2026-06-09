@@ -6,6 +6,9 @@ import { NoRoomSelected, NoConversationSelected } from './chat/EmptyStates';
 import { RoomInfoPanel } from './chat/RoomInfoPanel';
 import { MessageList } from './chat/MessageList';
 import { MessageInput } from './chat/MessageInput';
+
+import { GlobalSearch } from './chat/GlobalSearch';
+import { SavedItemsPanel } from './chat/SavedItemsPanel';
 import { PinnedMessagesModal } from './chat/PinnedMessagesModal';
 import { ThreadPanel } from './chat/ThreadPanel';
 
@@ -29,6 +32,7 @@ export interface ChatRoomProps {
     onSwitchRoom: (roomId: string) => void;
     onSelectConversation: (conversationId: string) => void;
     onStartConversation: (userId: string) => void;
+    onDeleteConversation: (conversationId: string) => void;
     onSearchUsers: (query: string) => Promise<UserSummary[]>;
     inputValue: string;
     setInputValue: (v: string) => void;
@@ -65,23 +69,9 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     unreadByRoom,
     onlineUsers,
     typingUsers,
-    activeSection,
-    activeConversationId,
-    directConversations,
-    directMessagesByConversation,
-    dmTypingUsers,
-    onJoinRoom,
-    onLeaveRoom,
-    onSwitchRoom,
-    onSelectConversation,
-    onStartConversation,
-    onSearchUsers,
-    inputValue,
-    setInputValue,
-    sendMessage,
-    sendFileMessage,
-    sendDirectMessage,
-    sendDirectFileMessage,
+    activeSection, activeConversationId, directConversations, directMessagesByConversation, dmTypingUsers,
+    onJoinRoom, onLeaveRoom, onSwitchRoom, onSelectConversation, onStartConversation, onDeleteConversation, onSearchUsers,
+    inputValue, setInputValue, sendMessage, sendFileMessage, sendDirectMessage, sendDirectFileMessage,
     onEditMessage,
     onDeleteMessage,
     onReactMessage,
@@ -114,10 +104,40 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
         return saved ? JSON.parse(saved) : [];
     });
     const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+    const [showScrollFab, setShowScrollFab] = useState(false);
+    const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+    const [showSavedItems, setShowSavedItems] = useState(false);
+    const [savedMessages, setSavedMessages] = useState<Message[]>([]);
+    const scrollAreaRef = useRef<HTMLElement | null>(null);
 
     useEffect(() => {
         localStorage.setItem('chat_muted_rooms', JSON.stringify(mutedRooms));
     }, [mutedRooms]);
+
+    useEffect(() => {
+        import('../lib/api').then(api => {
+            api.fetchSavedMessages().then(setSavedMessages).catch(console.error);
+        });
+    }, []);
+
+    const handleToggleSave = async (msg: ChatMessage) => {
+        const isSaved = savedMessages.some(sm => sm.id === msg.id);
+        const type = (msg as Message).roomId ? 'room' : 'dm';
+        try {
+            const api = await import('../lib/api');
+            if (isSaved) {
+                await api.unsaveMessage(msg.id);
+                setSavedMessages(prev => prev.filter(m => m.id !== msg.id));
+                setLocalToast('Message removed from Saved Items');
+            } else {
+                await api.saveMessage(msg.id, type);
+                setSavedMessages(prev => [{ ...msg, savedAt: new Date() } as Message, ...prev]);
+                setLocalToast('Message added to Saved Items');
+            }
+        } catch (err) {
+            setLocalToast('Failed to toggle save message');
+        }
+    };
 
     const handleToggleMute = () => {
         const targetId = activeConversationId || activeRoom;
@@ -146,7 +166,20 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
         setInputValue('');
         setShowRoomInfo(false);
         setActiveThreadId(null);
+        setShowScrollFab(false);
     }, [activeSection, activeRoom, activeConversationId, setInputValue]);
+
+    // Cmd+K global search shortcut
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setShowGlobalSearch(s => !s);
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
     
     const handleJumpToMessage = (messageId: string) => {
         const element = document.getElementById(`message-${messageId}`);
@@ -220,29 +253,40 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                 activeSection={activeSection}
                 onSelectConversation={onSelectConversation}
                 onStartConversation={onStartConversation}
+                onDeleteConversation={onDeleteConversation}
                 onSearchUsers={onSearchUsers}
+                onOpenSavedItems={() => setShowSavedItems(true)}
+                onOpenProfile={onOpenProfile}
             />
 
             {/* Main area */}
             <div style={{ display: 'flex', flexDirection: 'row', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden', background: 'var(--bg-base)' }}>
                     {/* Header */}
                 <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: 56, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', flexShrink: 0, gap: 12 }}>
                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         {isDirect ? (
                             activeConversation ? (
                                 <>
-                                    <Avatar name={activeConversation.user.username} size={30} circle />
+                                    <Avatar name={activeConversation.user.username} size={30} circle status={activeConversation.user.status} />
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}>
                                         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1 }}>
                                             {activeConversation.user.username}
                                         </div>
-                                        <div style={{ lineHeight: 1 }}>
+                                        <div style={{ lineHeight: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <StatusBadge
                                                 active={activeConversation.user.status === 'online'}
-                                                activeText="Online"
+                                                activeText={activeConversation.user.status === 'online' ? 'Online' : 'Offline'}
                                                 inactiveText="Offline"
                                             />
+                                            {activeConversation.user.statusMessage && (
+                                                <>
+                                                    <span style={{ color: 'var(--text-muted)' }}>·</span>
+                                                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        &ldquo;{activeConversation.user.statusMessage}&rdquo;
+                                                    </span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </>
@@ -282,7 +326,23 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                         )}
                         {(isDirect ? !!activeConversation : !!activeRoom) && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <div style={{ position: 'relative' }}>
+                                <button
+                                    onClick={() => setShowGlobalSearch(true)}
+                                    title="Global Search (Cmd+K)"
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                                        padding: '4px 10px', borderRadius: 8, color: 'var(--text-secondary)',
+                                        fontSize: 13, cursor: 'pointer', transition: 'all 0.2s',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-focus)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                >
+                                    <Icon d={Icons.search} size={14} />
+                                    Search...
+                                    <kbd style={{ fontSize: 10, padding: '2px 4px', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 4, marginLeft: 4 }}>⌘K</kbd>
+                                </button>
+                                <div style={{ position: 'relative', display: 'none' /* Hiding local search to favor global search */ }}>
                                     <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none', display: 'flex' }}>
                                         <Icon d={Icons.search} size={13} />
                                     </span>
@@ -324,37 +384,21 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                                 color={mutedRooms.includes(activeConversationId || activeRoom || '') ? '#EF4444' : undefined} 
                             />
                         </IconButton>
-                        <IconButton label="Pinned messages" onClick={() => setIsPinnedOpen(!isPinnedOpen)}>
-                            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.68V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3v4.68a2 2 0 0 1-1.11 1.87l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
-                        </IconButton>
 
-                        
-                        <div style={{ width: 1, height: 18, background: 'var(--border)', margin: '0 4px' }} />
-                        {/* Profile button */}
-                        <button
-                            id="open-profile-btn"
-                            onClick={onOpenProfile}
-                            title={`${currentUser ?? 'Profile'} — open profile`}
-                            style={{
-                                width: 32, height: 32, borderRadius: 'var(--radius-md)',
-                                background: 'var(--accent)',
-                                border: 'none',
-                                color: '#fff', fontWeight: 700, fontSize: 11,
-                                cursor: 'pointer', flexShrink: 0,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                letterSpacing: '0.03em',
-                                transition: 'opacity 0.15s',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
-                            onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-                        >
-                            {(currentUser ?? 'U').slice(0, 2).toUpperCase()}
-                        </button>
+
                     </div>
                 </header>
 
                 {/* Messages */}
-                <main style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollBehavior: 'smooth', position: 'relative', background: 'var(--bg-base)' }}>
+                <main
+                    ref={scrollAreaRef as any}
+                    onScroll={(e) => {
+                        const el = e.currentTarget;
+                        const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+                        setShowScrollFab(distFromBottom > 200);
+                    }}
+                    style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', scrollBehavior: 'smooth', position: 'relative', background: 'var(--bg-base)' }}
+                >
                     <div style={{ maxWidth: 780, width: '100%', margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
                         {isSelectionMissing ? (isDirect ? <NoConversationSelected /> : <NoRoomSelected />) : (
                             filteredMessages.length === 0 && messageSearchQuery ? (
@@ -363,6 +407,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                                 </div>
                             ) : (
                                 <MessageList
+                                    unreadCount={isDirect ? (activeConversation?.unreadCount || 0) : (activeRoom ? unreadByRoom[activeRoom] || 0 : 0)}
                                     messages={filteredMessages}
                                     currentUser={currentUser}
                                     messagesEndRef={messagesEndRef}
@@ -378,6 +423,8 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                                     onReact={handleReact}
                                     onJumpToMessage={handleJumpToMessage}
                                     onLoadMore={handleLoadMore}
+                                    savedMessages={savedMessages}
+                                    onToggleSave={handleToggleSave}
                                 />
                             )
                         )}
@@ -386,6 +433,29 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                         <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', padding: '10px 20px', borderRadius: 20, boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, zIndex: 1000, animation: 'fadeIn 0.2s ease' }}>
                             {localToast}
                         </div>
+                    )}
+
+                    {/* Scroll-to-bottom FAB */}
+                    {showScrollFab && (
+                        <button
+                            onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                            style={{
+                                position: 'sticky', bottom: 20, right: 20, alignSelf: 'flex-end',
+                                marginRight: 20, marginBottom: 8,
+                                width: 38, height: 38, borderRadius: '50%',
+                                background: 'var(--accent)', color: '#fff',
+                                border: 'none', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: 'var(--shadow-md)',
+                                animation: 'popIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both',
+                                zIndex: 10, transition: 'opacity 0.2s',
+                            }}
+                            title="Scroll to bottom"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
                     )}
                 </main>
 
@@ -425,20 +495,35 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                         availableMentions={availableMentions}
                     />
                 )}
+                
+                {showRoomInfo && activeRoomData && (
+                    <RoomInfoPanel
+                        room={activeRoomData}
+                        onlineUsers={onlineUsers}
+                        messages={messagesByRoom[activeRoomData.roomId] || []}
+                        onClose={() => setShowRoomInfo(false)}
+                        onLeave={() => {
+                            onLeaveRoom(activeRoomData.roomId);
+                            setShowRoomInfo(false);
+                        }}
+                    />
+                )}
+
+                {/* Saved Items Panel */}
+                {showSavedItems && (
+                    <SavedItemsPanel
+                        savedMessages={savedMessages}
+                        onClose={() => setShowSavedItems(false)}
+                        onUnsave={(id) => handleToggleSave({ id } as ChatMessage)}
+                        onJumpToMessage={(id, roomId, convId) => {
+                            if (roomId) onSwitchRoom(roomId);
+                            else if (convId) onSelectConversation(convId);
+                            handleJumpToMessage(id);
+                        }}
+                    />
+                )}
             </div>
 
-            
-            {showRoomInfo && activeRoomData && (
-                <RoomInfoPanel
-                    room={activeRoomData}
-                    onlineUsers={onlineUsers}
-                    onClose={() => setShowRoomInfo(false)}
-                    onLeave={() => {
-                        onLeaveRoom(activeRoomData.roomId);
-                        setShowRoomInfo(false);
-                    }}
-                />
-            )}
 
             <PinnedMessagesModal
                 isOpen={isPinnedOpen}
@@ -446,6 +531,31 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                 messages={messages}
                 onUnpin={handleUnpin}
             />
+
+            {/* Global Search Modal (Cmd+K) */}
+            {showGlobalSearch && (
+                <GlobalSearch
+                    onClose={() => setShowGlobalSearch(false)}
+                    messages={[
+                        ...Object.values(messagesByRoom || {}).flat(),
+                        ...Object.values(directMessagesByConversation || {}).flat().map((m: DirectMessage) => ({ ...m, text: m.text || '' }))
+                    ].map(m => ({
+                        id: m.id,
+                        text: m.text || '',
+                        username: m.username,
+                        timestamp: m.timestamp,
+                        roomId: (m as Message).roomId,
+                        conversationId: (m as DirectMessage).conversationId,
+                    }))}
+                    rooms={userRooms}
+                    conversations={directConversations}
+                    onJumpToRoom={(roomId) => { onSwitchRoom(roomId); }}
+                    onJumpToConversation={(convId) => { onSelectConversation(convId); }}
+                    onJumpToMessage={handleJumpToMessage}
+                />
+            )}
+
+
         </div>
     );
 };

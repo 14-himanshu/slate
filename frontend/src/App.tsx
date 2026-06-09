@@ -115,6 +115,22 @@ function App() {
     return searchUsers(query);
   }, []);
 
+  // ── Drafts for Message Input ───────────────────────────────────
+  const draftsRef = useRef<Record<string, string>>({});
+  const activeContextId = chatState.activeSection === 'rooms' ? chatState.activeRoom : chatState.activeConversationId;
+
+  const handleSwitchRoom = (roomId: string) => {
+    if (activeContextId) draftsRef.current[activeContextId] = inputValue;
+    chatState.switchRoom(roomId);
+    setInputValue(draftsRef.current[roomId] || '');
+  };
+
+  const handleSelectConversation = (convId: string) => {
+    if (activeContextId) draftsRef.current[activeContextId] = inputValue;
+    chatState.selectConversation(convId);
+    setInputValue(draftsRef.current[convId] || '');
+  };
+
   const dmTypingUsers = chatState.activeConversationId ? (chatState.dmTypingByConversation[chatState.activeConversationId] ?? []) : [];
 
   // ── Scroll to bottom when active room messages change ────────
@@ -153,15 +169,16 @@ function App() {
           unreadByRoom={chatState.unreadByRoom}
           onJoinRoom={chatState.joinRoom}
           onLeaveRoom={chatState.leaveRoom}
-          onSwitchRoom={chatState.switchRoom}
+          onSwitchRoom={handleSwitchRoom}
           // direct messages
           activeSection={chatState.activeSection}
           activeConversationId={chatState.activeConversationId}
           directConversations={chatState.directConversations}
           directMessagesByConversation={chatState.dmMessagesByConversation}
           dmTypingUsers={dmTypingUsers}
-          onSelectConversation={chatState.selectConversation}
+          onSelectConversation={handleSelectConversation}
           onStartConversation={chatState.startConversation}
+          onDeleteConversation={chatState.deleteConversation}
           onSearchUsers={handleSearchUsers}
           // chat
           inputValue={inputValue}
@@ -200,18 +217,19 @@ function App() {
         
         {/* Profile Overlay */}
         {showProfile && (
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 50,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', background: 'var(--bg-surface)', borderRadius: 12, boxShadow: 'var(--shadow-xl)' }}>
-              <button 
-                onClick={() => setShowProfile(false)}
-                style={{ position: 'absolute', top: 16, right: 16, background: 'var(--bg-hover)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
-              >
-                ✕
-              </button>
+          <div 
+            onClick={() => setShowProfile(false)}
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 50,
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              style={{ position: 'relative', width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', background: 'var(--bg-surface)', borderRadius: 12, boxShadow: 'var(--shadow-xl)' }}
+            >
+
               <ProfilePage 
                 currentUser={username}
                 token={token!} 

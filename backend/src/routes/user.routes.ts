@@ -8,6 +8,9 @@ import {
   changeUserPassword,
   updateUserPublicKey,
   searchUsersHandler,
+  bookmarkMessage,
+  removeBookmark,
+  fetchBookmarks,
 } from "../controllers/user.controller.js";
 import type { Request, Response, NextFunction } from "express";
 import type { AuthRequest } from "../middleware/requireAuth.js";
@@ -41,5 +44,9 @@ router.post("/change-password",requireAuth, wrap(changeUserPassword));
 router.put("/me/public-key",   requireAuth, wrap(updateUserPublicKey));
 router.put("/public-key",      requireAuth, wrap(updateUserPublicKey)); // alias
 router.get("/search",          requireAuth, wrap(searchUsersHandler));
+
+router.post("/bookmarks",      requireAuth, wrap(bookmarkMessage));
+router.delete("/bookmarks/:messageId", requireAuth, wrap(removeBookmark));
+router.get("/bookmarks",       requireAuth, wrap(fetchBookmarks));
 
 export default router;

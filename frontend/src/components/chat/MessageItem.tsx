@@ -11,13 +11,13 @@ function formatTime(d: Date) {
 }
 
 export function MessageActions({ msg, mine, onReact, onReply, onThreadReply, onEdit, onDelete, onMoreClick, moreBtnRef }: any) {
-    const btnStyle: any = { background: 'none', border: 'none', cursor: 'pointer', color: '#8E9297', padding: '6px', display: 'flex', transition: 'color 0.2s', borderRadius: 4 };
-    const onEnter = (e: any, c = '#FFFFFF') => { e.currentTarget.style.color = c; };
-    const onLeave = (e: any) => { e.currentTarget.style.color = '#8E9297'; };
-    const divider = <div style={{ width: 1, height: 16, background: 'rgba(255, 255, 255, 0.1)', margin: '0 4px' }} />;
+    const btnStyle: any = { background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '6px', display: 'flex', transition: 'all 0.15s ease', borderRadius: 6 };
+    const onEnter = (e: any, c = 'var(--text-primary)', bg = 'var(--bg-hover)') => { e.currentTarget.style.color = c; e.currentTarget.style.backgroundColor = bg; };
+    const onLeave = (e: any) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.backgroundColor = 'transparent'; };
+    const divider = <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />;
 
     return (
-        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(22, 25, 30, 0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.4)', padding: '4px 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: 'var(--shadow-md)', padding: '4px' }}>
             <button onClick={() => onReact(msg, 'like')} title="Like" style={btnStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
             </button>
@@ -42,7 +42,7 @@ export function MessageActions({ msg, mine, onReact, onReply, onThreadReply, onE
                 </button>
             )}
             {mine && (
-                <button onClick={onDelete} title="Delete" style={btnStyle} onMouseEnter={e => onEnter(e, '#EF4444')} onMouseLeave={onLeave}>
+                <button onClick={onDelete} title="Delete" style={btnStyle} onMouseEnter={e => onEnter(e, 'var(--danger)', 'var(--danger-bg)')} onMouseLeave={onLeave}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                 </button>
             )}
@@ -69,7 +69,9 @@ export function ContextMenuItem({ icon, label, onClick, danger }: any) {
     );
 }
 
-export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, onDelete, onClose, position }: any) {
+export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, onDelete, onToggleSave, isSaved, onClose }: {
+    msg: any, mine: boolean, onReply: any, onThreadReply?: any, onEdit: any, onDelete: any, onToggleSave: any, isSaved: boolean, onClose: () => void
+}) {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
         document.addEventListener('keydown', handleKeyDown);
@@ -79,10 +81,6 @@ export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, 
     return (
         <div 
             style={{ 
-                position: 'fixed', 
-                top: position.top, 
-                left: position.left, 
-                right: position.right, 
                 background: 'var(--bg-surface)', 
                 border: '1px solid var(--border)', 
                 borderRadius: 6, 
@@ -112,6 +110,12 @@ export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, 
                 icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>} 
                 label="Copy text" 
                 onClick={() => { navigator.clipboard.writeText(msg.text); onClose(); }} 
+            />
+            
+            <ContextMenuItem 
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>} 
+                label={isSaved ? "Unsave Message" : "Save Message"} 
+                onClick={() => { onToggleSave(msg); onClose(); }} 
             />
             
             {mine && <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />}
@@ -144,18 +148,14 @@ export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, 
     );
 }
 
-export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLastInGroup = true, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, activeMenuMessageId, setActiveMenuMessageId }: any) {
+export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLastInGroup = true, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, onToggleSave, isSaved, activeMenuMessageId, setActiveMenuMessageId }: any) {
     const [isHovered, setIsHovered] = useState(false);
-    const [menuPos, setMenuPos] = useState<{ top: number, right?: number, left?: number } | null>(null);
     const [decryptedText, setDecryptedText] = useState<string | null>(null);
     const [decryptedLinkPreview, setDecryptedLinkPreview] = useState<any>(null);
     const [decryptError, setDecryptError] = useState<boolean>(false);
     const moreBtnRef = useRef<HTMLButtonElement>(null);
     const isMenuActive = activeMenuMessageId === msg.id;
 
-    useEffect(() => {
-        if (!isMenuActive) setMenuPos(null);
-    }, [isMenuActive]);
 
     useEffect(() => {
         if (msg.isE2EE && msg.e2eeData) {
@@ -192,11 +192,7 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
 
     const handleMoreClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (moreBtnRef.current) {
-            const rect = moreBtnRef.current.getBoundingClientRect();
-            setMenuPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
-            setActiveMenuMessageId(msg.id);
-        }
+        setActiveMenuMessageId(isMenuActive ? null : msg.id);
     };
 
     const processedText = msg.text ? msg.text.replace(/@([A-Za-z0-9_]+)/g, '[@$1](mention://$1)') : '';
@@ -212,13 +208,11 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                 gap: 16, marginTop: hideHeader ? 4 : 16, padding: '2px 16px', 
                 position: 'relative', transition: 'background 0.1s ease', 
                 background: isHovered || isMenuActive ? 'var(--bg-hover)' : 'transparent',
+                zIndex: isMenuActive ? 50 : (isHovered ? 2 : 1),
             }}
         >
             <div style={{ width: 40, flexShrink: 0, marginTop: hideHeader ? 0 : 2, display: 'flex', justifyContent: 'center' }}>
                 {!hideHeader && <Avatar name={msg.username} size={40} />}
-                {hideHeader && isHovered && (
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)', paddingTop: 4, userSelect: 'none' }}>{formatTime(msg.timestamp)}</span>
-                )}
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start', maxWidth: '100%', position: 'relative', flex: 1, minWidth: 0 }}>
@@ -233,6 +227,18 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                     {(isHovered || isMenuActive) && !msg.deleted && (
                         <div style={{ position: 'absolute', top: -18, right: 16, zIndex: 10, animation: 'fadeIn 0.15s ease' }}>
                             <MessageActions msg={msg} mine={mine} onReact={onReact} onReply={() => onReply(msg)} onThreadReply={onThreadReply} onEdit={() => onEdit(msg)} onDelete={() => onDelete(msg)} onMoreClick={handleMoreClick} moreBtnRef={moreBtnRef} />
+                        </div>
+                    )}
+
+                    {/* Context Menu */}
+                    {isMenuActive && (
+                        <div style={{ position: 'absolute', top: 20, right: 16, zIndex: 100, animation: 'fadeIn 0.15s ease' }}>
+                            <MessageContextMenu 
+                                msg={msg} mine={mine} onReply={() => onReply(msg)} onThreadReply={onThreadReply} 
+                                onEdit={() => onEdit(msg)} onDelete={() => onDelete(msg)} 
+                                onToggleSave={onToggleSave} isSaved={isSaved}
+                                onClose={() => setActiveMenuMessageId(null)} 
+                            />
                         </div>
                     )}
                     
@@ -284,11 +290,17 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                                     </a>
                                 )}
                                 {/* File message */}
-                                {msg.type === 'file' && msg.fileUrl && (
+                                {msg.type === 'file' && msg.fileUrl && !msg.fileName?.match(/\.(mp4|webm|ogg)$/i) && (
                                     <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none', color: 'inherit', marginTop: 4 }}>
                                         <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                                         <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--accent)' }}>{msg.fileName ?? 'Download file'}</span>
                                     </a>
+                                )}
+                                {/* Video message */}
+                                {msg.type === 'file' && msg.fileUrl && msg.fileName?.match(/\.(mp4|webm|ogg)$/i) && (
+                                    <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        <video controls src={msg.fileUrl} style={{ maxWidth: '320px', maxHeight: '320px', borderRadius: 8, border: '1px solid var(--border)', background: '#000' }} />
+                                    </div>
                                 )}
                                 {/* Audio message */}
                                 {msg.type === 'audio' && msg.fileUrl && (
@@ -456,10 +468,7 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                 )}
             </div>
             
-            {/* Context Menu */}
-            {isMenuActive && menuPos && (
-                <MessageContextMenu msg={msg} mine={mine} onReply={() => onReply(msg)} onThreadReply={onThreadReply} onEdit={() => onEdit(msg)} onDelete={() => onDelete(msg)} onClose={() => setActiveMenuMessageId(null)} position={menuPos} />
-            )}
+
         </article>
     );
 }

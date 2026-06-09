@@ -13,11 +13,14 @@ function formatDateLabel(d: Date) {
     return d.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export function MessageList({ messages, currentUser, messagesEndRef, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, onLoadMore }: {
+export function MessageList({ messages, currentUser, messagesEndRef, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, onLoadMore, savedMessages, onToggleSave, unreadCount }: {
     messages: ChatMessage[]; currentUser: string | null; messagesEndRef: React.RefObject<HTMLDivElement | null>;
     onReply: (m: ChatMessage) => void; onThreadReply?: (m: ChatMessage) => void; onEdit: (m: ChatMessage) => void; onDelete: (m: ChatMessage) => void; onReact: (m: ChatMessage, icon: string) => void;
     onJumpToMessage: (id: string) => void;
     onLoadMore?: () => void;
+    savedMessages?: Message[];
+    onToggleSave?: (m: ChatMessage) => void;
+    unreadCount?: number;
 }) {
     const listRef = React.useRef<HTMLDivElement>(null);
     const topBoundaryRef = React.useRef<HTMLDivElement>(null);
@@ -81,9 +84,18 @@ export function MessageList({ messages, currentUser, messagesEndRef, onReply, on
                 const hideHeader = isGroupedWithPrev;
                 const isFirstInGroup = !isGroupedWithPrev;
                 const isLastInGroup = !isGroupedWithNext;
+                
+                const isFirstUnread = unreadCount != null && unreadCount > 0 && i === messages.length - unreadCount;
 
                 return (
                     <React.Fragment key={msg.id}>
+                        {isFirstUnread && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
+                                <div style={{ flex: 1, height: 1, background: 'var(--danger)' }} />
+                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>New Messages</span>
+                                <div style={{ flex: 1, height: 1, background: 'var(--danger)' }} />
+                            </div>
+                        )}
                         {showDate && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0 16px' }}>
                                 <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
@@ -103,6 +115,8 @@ export function MessageList({ messages, currentUser, messagesEndRef, onReply, on
                             onDelete={onDelete} 
                             onReact={onReact} 
                             onJumpToMessage={onJumpToMessage}
+                            onToggleSave={onToggleSave}
+                            isSaved={savedMessages ? savedMessages.some(sm => sm.id === msg.id) : false}
                             activeMenuMessageId={activeMenuMessageId}
                             setActiveMenuMessageId={setActiveMenuMessageId}
                         />

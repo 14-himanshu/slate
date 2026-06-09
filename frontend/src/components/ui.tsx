@@ -404,45 +404,72 @@ function getAvatarPalette(name: string) {
 }
 
 export function Avatar({
-    name, src, size = 32, circle = false
+    name, src, size = 32, circle = false, status
 }: {
     name: string;
     src?: string | null;
     size?: number;
     circle?: boolean;
+    status?: 'online' | 'offline' | 'busy' | 'away';
 }) {
     const { from, to } = getAvatarPalette(name);
     const radius = circle ? '50%' : `${Math.round(size * 0.3)}px`;
 
+    const statusColors = {
+        online: '#10B981', // green
+        offline: '#94A3B8', // slate
+        busy: '#EF4444', // red
+        away: '#F59E0B', // amber
+    };
+
+    const statusDot = status ? (
+        <div style={{
+            position: 'absolute',
+            bottom: -2,
+            right: -2,
+            width: Math.max(10, size * 0.28),
+            height: Math.max(10, size * 0.28),
+            backgroundColor: statusColors[status],
+            border: `2px solid var(--bg-surface)`,
+            borderRadius: '50%',
+            zIndex: 1,
+        }} />
+    ) : null;
+
     if (src) {
         return (
-            <img
-                src={src}
-                alt={name}
-                title={name}
-                style={{ width: size, height: size, borderRadius: radius, objectFit: 'cover', flexShrink: 0 }}
-            />
+            <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+                <img
+                    src={src}
+                    alt={name}
+                    title={name}
+                    style={{ width: size, height: size, borderRadius: radius, objectFit: 'cover' }}
+                />
+                {statusDot}
+            </div>
         );
     }
 
     return (
-        <div
-            aria-hidden="true"
-            title={name}
-            style={{
-                width: size, height: size,
-                borderRadius: radius,
-                background: `linear-gradient(135deg, ${from}, ${to})`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: Math.round(size * 0.4),
-                fontWeight: 700,
-                color: '#fff',
-                flexShrink: 0,
-                letterSpacing: '-0.02em',
-                userSelect: 'none',
-            }}
-        >
-            {name.charAt(0).toUpperCase()}
+        <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+            <div
+                aria-hidden="true"
+                title={name}
+                style={{
+                    width: '100%', height: '100%',
+                    borderRadius: radius,
+                    background: `linear-gradient(135deg, ${from}, ${to})`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: Math.round(size * 0.4),
+                    fontWeight: 700,
+                    color: '#fff',
+                    letterSpacing: '-0.02em',
+                    userSelect: 'none',
+                }}
+            >
+                {name.charAt(0).toUpperCase()}
+            </div>
+            {statusDot}
         </div>
     );
 }

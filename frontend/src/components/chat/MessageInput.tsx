@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import type { Message, DirectMessage } from '../../types';
 import { Icon, Icons } from '../ui';
+import { EmojiPicker } from './EmojiPicker';
 
 type ChatMessage = Message | DirectMessage;
 
@@ -32,6 +33,7 @@ export function MessageInput({
     const [uploading, setUploading] = useState(false);
     const [preview, setPreview] = useState<{ url: string; name: string; isImage: boolean; isAudio?: boolean; file?: File } | null>(null);
     const [mentionState, setMentionState] = useState<{ active: boolean; query: string; index: number }>({ active: false, query: '', index: 0 });
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -119,6 +121,21 @@ export function MessageInput({
     const clearPreview = () => {
         setPreview(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const formatText = (prefix: string, suffix: string = prefix) => {
+        const el = inputRef.current;
+        if (!el) return;
+        const start = el.selectionStart ?? value.length;
+        const end = el.selectionEnd ?? value.length;
+        const selected = value.substring(start, end);
+        const newVal = value.substring(0, start) + prefix + selected + suffix + value.substring(end);
+        setValue(newVal);
+        setTimeout(() => {
+            el.focus();
+            el.selectionStart = start + prefix.length;
+            el.selectionEnd = end + prefix.length;
+        }, 0);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,13 +228,18 @@ export function MessageInput({
             {/* Typing indicator zone directly above input */}
             <div style={{ height: 20, display: 'flex', alignItems: 'center', marginBottom: 2, paddingLeft: 8 }}>
                 {activeTypingUsers.length > 0 && (
-                    <span className="animate-fade-in" style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                    <span className="animate-fade-in" style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
+                        <span style={{ 
+                            display: 'flex', gap: 4, alignItems: 'center', 
+                            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                            padding: '6px 10px', borderRadius: '14px 14px 14px 4px',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                        }}>
                             {[0, 0.15, 0.3].map((delay, i) => (
-                                <span key={i} style={{ width: 4, height: 4, background: 'var(--accent)', borderRadius: '50%', animation: `typing-bounce 1.2s ease infinite`, animationDelay: `${delay}s` }} />
+                                <span key={i} style={{ width: 5, height: 5, background: 'var(--accent)', borderRadius: '50%', animation: `typing-bounce 1.2s ease infinite`, animationDelay: `${delay}s`, opacity: 0.8 }} />
                             ))}
                         </span>
-                        {activeTypingUsers.length === 1 ? `${activeTypingUsers[0]} is typing` : `${activeTypingUsers.join(', ')} are typing`}
+                        {activeTypingUsers.length === 1 ? `${activeTypingUsers[0]} is typing...` : `${activeTypingUsers.join(', ')} are typing...`}
                     </span>
                 )}
             </div>
@@ -337,6 +359,37 @@ export function MessageInput({
                 );
             })()}
 
+            {/* Formatting Toolbar */}
+            <div style={{
+                display: 'flex', gap: 6, marginBottom: 6, paddingLeft: 6,
+                opacity: (focused && !isRecording) ? 1 : 0,
+                pointerEvents: (focused && !isRecording) ? 'auto' : 'none',
+                transition: 'opacity 0.2s ease',
+            }}>
+                {[
+                    { label: 'B', title: 'Bold', action: () => formatText('**'), style: { fontWeight: 700 } },
+                    { label: 'I', title: 'Italic', action: () => formatText('*'), style: { fontStyle: 'italic', fontFamily: 'serif' } },
+                    { label: 'S', title: 'Strikethrough', action: () => formatText('~~'), style: { textDecoration: 'line-through' } },
+                    { label: '</>', title: 'Code', action: () => formatText('`'), style: { fontFamily: 'monospace', fontSize: 11 } }
+                ].map((btn, i) => (
+                    <button
+                        key={i}
+                        onMouseDown={e => { e.preventDefault(); btn.action(); }}
+                        title={btn.title}
+                        style={{
+                            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                            color: 'var(--text-muted)', borderRadius: 6, width: 26, height: 26,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', fontSize: 13, ...btn.style
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                    >
+                        {btn.label}
+                    </button>
+                ))}
+            </div>
+
             {/* Main input row */}
             <div style={{
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -376,25 +429,50 @@ export function MessageInput({
                     onChange={handleFileChange}
                 />
                 
-                {/* Emoji button */}
-                <button
-                    disabled={!isConnected || disabled}
-                    title="Choose emoji"
-                    style={{
-                        width: 32, height: 32,
-                        background: 'none', border: 'none',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'var(--text-muted)', borderRadius: 8,
-                        cursor: (!isConnected || disabled) ? 'not-allowed' : 'pointer',
-                        flexShrink: 0,
-                        opacity: (!isConnected || disabled) ? 0.4 : 1,
-                        transition: 'all 0.12s',
-                    }}
-                    onMouseEnter={e => { if (isConnected && !disabled) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                >
-                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                </button>
+                {/* Emoji button + picker */}
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <button
+                        disabled={!isConnected || disabled}
+                        title="Choose emoji"
+                        onClick={() => setShowEmojiPicker(p => !p)}
+                        style={{
+                            width: 32, height: 32,
+                            background: showEmojiPicker ? 'var(--bg-hover)' : 'none', border: 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: showEmojiPicker ? 'var(--accent)' : 'var(--text-muted)', borderRadius: 8,
+                            cursor: (!isConnected || disabled) ? 'not-allowed' : 'pointer',
+                            flexShrink: 0,
+                            opacity: (!isConnected || disabled) ? 0.4 : 1,
+                            transition: 'all 0.12s',
+                        }}
+                        onMouseEnter={e => { if (isConnected && !disabled) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--accent)'; } }}
+                        onMouseLeave={e => { if (!showEmojiPicker) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)'; } }}
+                    >
+                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                    </button>
+                    {showEmojiPicker && (
+                        <EmojiPicker
+                            onSelect={(emoji) => {
+                                const el = inputRef.current;
+                                if (el) {
+                                    const start = el.selectionStart ?? value.length;
+                                    const end = el.selectionEnd ?? value.length;
+                                    const newVal = value.slice(0, start) + emoji + value.slice(end);
+                                    setValue(newVal);
+                                    setTimeout(() => {
+                                        el.focus();
+                                        el.selectionStart = start + emoji.length;
+                                        el.selectionEnd = start + emoji.length;
+                                    }, 0);
+                                } else {
+                                    setValue(value + emoji);
+                                }
+                                setShowEmojiPicker(false);
+                            }}
+                            onClose={() => setShowEmojiPicker(false)}
+                        />
+                    )}
+                </div>
 
                 {/* GIF button */}
                 <button

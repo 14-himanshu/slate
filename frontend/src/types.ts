@@ -33,6 +33,7 @@ export interface Message {
   threadId?: string;
   threadReplyCount?: number;
   lastThreadReplyAt?: string;
+  savedAt?: Date | string;
 }
 
 export type UserStatus = "online" | "offline" | "busy" | "away";
@@ -43,6 +44,7 @@ export interface UserProfile {
   avatar?: string;
   bio?: string;
   status: UserStatus;
+  statusMessage?: string;
   publicKey?: string;
   lastSeen: string;
   createdAt: string;
@@ -53,6 +55,7 @@ export interface UserSummary {
   username: string;
   avatar?: string;
   status?: UserStatus;
+  statusMessage?: string;
   lastSeen?: string;
   publicKey?: string;
 }

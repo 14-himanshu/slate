@@ -8,7 +8,9 @@ export interface IUser extends Document {
   avatar?: string;
   bio?: string;
   status: UserStatus;
+  statusMessage?: string;
   publicKey?: string;
+  savedMessages: Array<{ messageId: string; type: 'room' | 'dm'; addedAt: Date }>;
   lastSeen: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -42,6 +44,11 @@ const userSchema = new Schema<IUser>(
       enum: ["online", "offline", "busy", "away"],
       default: "offline",
     },
+    statusMessage: {
+      type: String,
+      maxlength: 100,
+      default: "",
+    },
     lastSeen: {
       type: Date,
       default: () => new Date(),
@@ -49,6 +56,14 @@ const userSchema = new Schema<IUser>(
     publicKey: {
       type: String,
       default: undefined,
+    },
+    savedMessages: {
+      type: [{
+        messageId: { type: String, required: true },
+        type: { type: String, enum: ['room', 'dm'], required: true },
+        addedAt: { type: Date, default: () => new Date() },
+      }],
+      default: [],
     },
   },
   { timestamps: true }

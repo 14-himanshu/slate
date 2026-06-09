@@ -344,6 +344,19 @@ export function useChat(
     } catch (err) { console.error('Failed to start conversation:', err); }
   }, []);
 
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    try {
+      const { deleteDirectConversation } = await import('../lib/api');
+      await deleteDirectConversation(conversationId);
+      setDirectConversations(prev => prev.filter(c => c.id !== conversationId));
+      if (activeConversationIdRef.current === conversationId) {
+        setActiveConversationId(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
+  }, []);
+
   const sendMessage = useCallback(async (inputValue: string, replyToId?: string, threadId?: string) => {
     if (!inputValue.trim() || !activeRoom || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     
@@ -489,7 +502,7 @@ export function useChat(
     isConnected, joinedRooms, activeRoom, messagesByRoom, unreadByRoom, onlineUsersByRoom, typingUsersByRoom,
     activeSection, directConversations, activeConversationId, dmMessagesByConversation, dmTypingByConversation,
     threadMessages, wsRef,
-    joinRoom, leaveRoom, switchRoom, selectConversation, startConversation,
+    joinRoom, leaveRoom, switchRoom, selectConversation, startConversation, deleteConversation,
     sendMessage, editMessage, deleteMessage, reactMessage, handleTyping, sendFileMessage,
     sendDirectMessage, sendDirectFileMessage, editDirectMessage, deleteDirectMessage, reactDirectMessage, handleDirectTyping,
     loadMoreMessages, loadMoreDmMessages, loadThreadMessages, userRooms, setUserRooms,
