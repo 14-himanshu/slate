@@ -199,6 +199,8 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
         }
     };
 
+    const processedText = msg.text ? msg.text.replace(/@([A-Za-z0-9_]+)/g, '[@$1](mention://$1)') : '';
+
     return (
         <article
             id={`message-${msg.id}`}
@@ -323,17 +325,54 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                                                     return <p style={{ margin: '2px 0' }}>{children}</p>;
                                                 },
                                                 a({children, href}) {
+                                                    if (href?.startsWith('mention://')) {
+                                                        const mUser = href.replace('mention://', '');
+                                                        const isMe = mUser === localStorage.getItem('chat_username');
+                                                        return (
+                                                            <span style={{
+                                                                background: isMe ? 'var(--warning)' : 'rgba(79, 110, 247, 0.2)',
+                                                                color: isMe ? '#000' : 'var(--accent)',
+                                                                padding: '0 4px', borderRadius: 4, fontWeight: 600,
+                                                                display: 'inline-block', lineHeight: 1.2
+                                                            }}>
+                                                                {children}
+                                                            </span>
+                                                        );
+                                                    }
                                                     return <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-light)', textDecoration: 'underline' }}>{children}</a>;
                                                 }
                                             }}
                                         >
-                                            {msg.text}
+                                            {processedText}
                                         </ReactMarkdown>
                                     </div>
                                 )}
                                 {msg.text && msg.type === 'image' && !msg.isE2EE && (
                                     <div className="markdown-body" style={{ marginTop: 6, fontSize: 15, width: '100%' }}>
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+                                        <ReactMarkdown 
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                a({children, href}) {
+                                                    if (href?.startsWith('mention://')) {
+                                                        const mUser = href.replace('mention://', '');
+                                                        const isMe = mUser === localStorage.getItem('chat_username');
+                                                        return (
+                                                            <span style={{
+                                                                background: isMe ? 'var(--warning)' : 'rgba(79, 110, 247, 0.2)',
+                                                                color: isMe ? '#000' : 'var(--accent)',
+                                                                padding: '0 4px', borderRadius: 4, fontWeight: 600,
+                                                                display: 'inline-block', lineHeight: 1.2
+                                                            }}>
+                                                                {children}
+                                                            </span>
+                                                        );
+                                                    }
+                                                    return <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-light)', textDecoration: 'underline' }}>{children}</a>;
+                                                }
+                                            }}
+                                        >
+                                            {processedText}
+                                        </ReactMarkdown>
                                     </div>
                                 )}
                                 

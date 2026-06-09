@@ -33,6 +33,7 @@ export function useChat(
   const directConversationsRef = useRef<DirectConversationSummary[]>([]);
   const activeConversationIdRef = useRef<string | null>(storedActiveDm);
   const activeSectionRef = useRef<'rooms' | 'dm'>(storedActiveSection);
+  const activeRoomRef = useRef<string | null>(activeRoom);
 
   useEffect(() => { localStorage.setItem('chat_rooms', JSON.stringify(joinedRooms)); }, [joinedRooms]);
   useEffect(() => { localStorage.setItem('chat_active_section', activeSection); }, [activeSection]);
@@ -43,6 +44,7 @@ export function useChat(
   useEffect(() => { directConversationsRef.current = directConversations; }, [directConversations]);
   useEffect(() => { activeConversationIdRef.current = activeConversationId; }, [activeConversationId]);
   useEffect(() => { activeSectionRef.current = activeSection; }, [activeSection]);
+  useEffect(() => { activeRoomRef.current = activeRoom; }, [activeRoom]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -222,6 +224,18 @@ export function useChat(
           } else if (data.type === 'presence') {
             const { userId, status, lastSeen } = data.payload as { userId: string; status: 'online' | 'offline'; lastSeen: string };
             setDirectConversations(prev => prev.map(conv => conv.user.id === userId ? { ...conv, user: { ...conv.user, status, lastSeen } } : conv));
+          } else if (data.type === 'mention') {
+            const payload = data.payload as { sender: string; roomId: string | null; conversationId: string | null; messageId: string; text: string };
+            const isActiveRoom = payload.roomId && payload.roomId === activeRoomRef.current;
+            const isActiveDm = payload.conversationId && payload.conversationId === activeConversationIdRef.current;
+            
+            if (localStorage.getItem('chat_notifications') === 'true' && (document.hidden || (!isActiveRoom && !isActiveDm))) {
+              const mutedRooms = JSON.parse(localStorage.getItem('chat_muted_rooms') ?? '[]');
+              const targetId = payload.roomId || payload.conversationId || '';
+              if (!mutedRooms.includes(targetId)) {
+                sendNotification(`You were mentioned by ${payload.sender}`, { body: payload.text });
+              }
+            }
           } else if (data.type === 'webrtc_signal') {
             const payload = data.payload as { conversationId: string, senderId: string, senderUsername: string, signalType: string, data: any };
             if (onWebRTCSignal) {

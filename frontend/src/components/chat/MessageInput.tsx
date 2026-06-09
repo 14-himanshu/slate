@@ -19,17 +19,19 @@ interface ComposerProps {
     setEditingMsg: (m: ChatMessage | null) => void;
     onEditMessage: (id: string, text: string) => void;
     activeTypingUsers?: string[];
+    availableMentions?: string[];
 }
 
 export function MessageInput({
     value, setValue, sendMessage, sendFileMessage, isConnected,
     inputRef, disabled, onTyping,
     replyToMsg, setReplyToMsg, editingMsg, setEditingMsg, onEditMessage,
-    activeTypingUsers = []
+    activeTypingUsers = [], availableMentions = []
 }: ComposerProps) {
     const [focused, setFocused] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [preview, setPreview] = useState<{ url: string; name: string; isImage: boolean; isAudio?: boolean; file?: File } | null>(null);
+    const [mentionState, setMentionState] = useState<{ active: boolean; query: string; index: number }>({ active: false, query: '', index: 0 });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -117,6 +119,83 @@ export function MessageInput({
     const clearPreview = () => {
         setPreview(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setValue(e.target.value);
+        onTyping(e.target.value.length > 0);
+        
+        const cursor = e.target.selectionStart || 0;
+        const textBeforeCursor = e.target.value.substring(0, cursor);
+        const match = textBeforeCursor.match(/(?:^|\s)@([A-Za-z0-9_]*)$/);
+        
+        if (match) {
+            setMentionState({ active: true, query: match[1], index: 0 });
+        } else {
+            setMentionState({ active: false, query: '', index: 0 });
+        }
+    };
+
+    const insertMention = (username: string) => {
+        if (!inputRef.current) return;
+        const cursor = inputRef.current.selectionStart || 0;
+        const textBeforeCursor = value.substring(0, cursor);
+        const textAfterCursor = value.substring(cursor);
+        
+        const match = textBeforeCursor.match(/(?:^|\s)@([A-Za-z0-9_]*)$/);
+        if (!match) return;
+        
+        const matchIdx = textBeforeCursor.lastIndexOf(`@${match[1]}`);
+        const newTextBefore = textBeforeCursor.substring(0, matchIdx) + `@${username} `;
+        
+        setValue(newTextBefore + textAfterCursor);
+        setMentionState({ active: false, query: '', index: 0 });
+        
+        setTimeout(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+                inputRef.current.selectionStart = newTextBefore.length;
+                inputRef.current.selectionEnd = newTextBefore.length;
+            }
+        }, 0);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (mentionState.active && availableMentions && availableMentions.length > 0) {
+            const filtered = availableMentions.filter((u: string) => u.toLowerCase().includes(mentionState.query.toLowerCase()));
+            if (filtered.length > 0) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setMentionState(s => ({ ...s, index: (s.index + 1) % filtered.length }));
+                    return;
+                }
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setMentionState(s => ({ ...s, index: (s.index - 1 + filtered.length) % filtered.length }));
+                    return;
+                }
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault();
+                    insertMention(filtered[mentionState.index]);
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setMentionState({ active: false, query: '', index: 0 });
+                    return;
+                }
+            }
+        }
+
+        if (e.key === 'Enter' && !e.shiftKey) { 
+            e.preventDefault(); 
+            handleSend(); 
+        } 
+        if (e.key === 'Escape') { 
+            setReplyToMsg(null); 
+            setEditingMsg(null); 
+            setValue(''); 
+        }
     };
 
     const placeholderText = disabled
@@ -213,6 +292,39 @@ export function MessageInput({
                     </button>
                 </div>
             )}
+            
+            {/* Mention Autocomplete Popover */}
+            {mentionState.active && availableMentions && availableMentions.length > 0 && (
+                (() => {
+                    const filtered = availableMentions.filter((u: string) => u.toLowerCase().includes(mentionState.query.toLowerCase()));
+                    if (filtered.length === 0) return null;
+                    return (
+                        <div style={{
+                            position: 'absolute', bottom: '100%', left: 40, marginBottom: 8,
+                            background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                            borderRadius: 8, padding: '4px', boxShadow: 'var(--shadow-lg)',
+                            zIndex: 50, display: 'flex', flexDirection: 'column', gap: 2,
+                            minWidth: 160, maxHeight: 200, overflowY: 'auto'
+                        }}>
+                            {filtered.map((username: string, idx: number) => (
+                                <button
+                                    key={username}
+                                    onClick={() => insertMention(username)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        padding: '6px 10px', background: idx === mentionState.index ? 'var(--bg-hover)' : 'transparent',
+                                        border: 'none', borderRadius: 4, cursor: 'pointer',
+                                        textAlign: 'left', width: '100%', transition: 'background 0.1s'
+                                    }}
+                                    onMouseEnter={() => setMentionState(s => ({ ...s, index: idx }))}
+                                >
+                                    <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>{username}</span>
+                                </button>
+                            ))}
+                        </div>
+                    );
+                })()
+            )}
 
             {/* Main input row */}
             <div style={{
@@ -308,8 +420,8 @@ export function MessageInput({
                         id="message-input"
                         type="text"
                         value={value}
-                        onChange={e => { setValue(e.target.value); onTyping(e.target.value.length > 0); }}
-                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } if (e.key === 'Escape') { setReplyToMsg(null); setEditingMsg(null); setValue(''); } }}
+                        onChange={handleChange}
+                        onKeyDown={handleKeyDown}
                         onFocus={() => setFocused(true)}
                         onBlur={() => { setFocused(false); onTyping(false); }}
                         disabled={!isConnected || disabled || uploading}

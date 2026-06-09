@@ -190,6 +190,10 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
         }
     };
 
+    const availableMentions = isDirect 
+        ? (activeConversation ? [activeConversation.user.username] : [])
+        : onlineUsers;
+
     // Auto-scroll when messages change for the active room
     const prevActiveRef = useRef(activeRoom);
     useEffect(() => { prevActiveRef.current = activeRoom; }, [activeRoom]);
@@ -402,6 +406,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                         setEditingMsg={setEditingMsg}
                         onEditMessage={handleEditCommit}
                         activeTypingUsers={activeTypingUsers}
+                        availableMentions={availableMentions}
                     />
                 </div>
                 </div>
@@ -417,6 +422,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                         onDeleteMessage={(id) => handleDelete({ id } as ChatMessage)}
                         onReactMessage={(id, icon) => handleReact({ id } as ChatMessage, icon)}
                         isConnected={isConnected}
+                        availableMentions={availableMentions}
                     />
                 )}
             </div>

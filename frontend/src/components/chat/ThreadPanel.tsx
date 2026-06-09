@@ -15,9 +15,10 @@ interface ThreadPanelProps {
   onDeleteMessage: (msgId: string) => void;
   onReactMessage: (msgId: string, icon: string) => void;
   isConnected: boolean;
+  availableMentions: string[];
 }
 
-export function ThreadPanel({ parentMessage, messages, username, onClose, onSendMessage, onSendFile, onEditMessage, onDeleteMessage, onReactMessage, isConnected }: ThreadPanelProps) {
+export function ThreadPanel({ parentMessage, messages, username, onClose, onSendMessage, onSendFile, onEditMessage, onDeleteMessage, onReactMessage, isConnected, availableMentions }: ThreadPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [editingMsg, setEditingMsg] = useState<any>(null);
@@ -121,6 +122,7 @@ export function ThreadPanel({ parentMessage, messages, username, onClose, onSend
           setEditingMsg={setEditingMsg}
           onEditMessage={(id: string, text: string) => onEditMessage(id, text)}
           activeTypingUsers={[]}
+          availableMentions={availableMentions}
         />
       </div>
     </div>

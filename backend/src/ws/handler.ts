@@ -70,6 +70,33 @@ function broadcastPresence(userId: string, status: "online" | "offline"): void {
   }
 }
 
+const MENTION_REGEX = /(?:^|\s)@([A-Za-z0-9_]+)/g;
+
+function extractMentions(text: string): string[] {
+  const matches = [...text.matchAll(MENTION_REGEX)];
+  return Array.from(new Set(matches.map(m => m[1] as string)));
+}
+
+function notifyMentions(text: string, senderUsername: string, roomId: string | null, conversationId: string | null, msgId: string) {
+  const mentionedUsernames = extractMentions(text);
+  for (const uname of mentionedUsernames) {
+    if (uname === senderUsername) continue;
+    const targets = connectedUsers.filter(u => u.username === uname);
+    for (const target of targets) {
+      send(target.socket, {
+        type: "mention",
+        payload: {
+          sender: senderUsername,
+          roomId,
+          conversationId,
+          messageId: msgId,
+          text
+        }
+      });
+    }
+  }
+}
+
 function broadcastUserCount(roomId: string): void {
   const users = connectedUsers.filter(u => u.rooms.has(roomId)).map(u => u.username);
   // Remove duplicates just in case one user has multiple connections
@@ -289,6 +316,10 @@ export function setupWebSocketServer(httpServer: Server): void {
 
           );
           broadcastToConversation(conversationId, { type: "dmMessage", payload: savedMessage });
+          
+          if (!isE2EE && message) {
+            notifyMentions(message, username, null, conversationId, savedMessage.id.toString());
+          }
         } catch (err) {
           console.error("Failed to save DM:", err);
           send(socket, { type: "error", payload: { message: "Failed to send direct message." } });
@@ -430,6 +461,9 @@ export function setupWebSocketServer(httpServer: Server): void {
             type:    "chat",
             payload: savedMessage,
           });
+          if (message) {
+            notifyMentions(message, username, roomId, null, savedMessage.id.toString());
+          }
         } catch (err) {
           console.error("Failed to save message:", err);
           send(socket, { type: "error", payload: { message: "Failed to send message." } });
