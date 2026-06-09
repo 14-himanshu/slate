@@ -31,6 +31,30 @@ export async function updateProfile(
   );
 
   if (!updated) throw new Error("User not found.");
+
+  if (username) {
+    const trimmedUsername = username.trim();
+    
+    // Import dynamically to avoid circular dependencies
+    const { Message } = await import("../models/Message.js");
+    const { DirectMessage } = await import("../models/DirectMessage.js");
+
+    await Message.updateMany({ userId }, { $set: { username: trimmedUsername } });
+    await DirectMessage.updateMany({ senderId: userId }, { $set: { username: trimmedUsername } });
+
+    // Update reactions in Message and DirectMessage
+    await Message.updateMany(
+      { "reactions.userId": userId },
+      { $set: { "reactions.$[elem].username": trimmedUsername } },
+      { arrayFilters: [{ "elem.userId": userId }] }
+    );
+    await DirectMessage.updateMany(
+      { "reactions.userId": userId },
+      { $set: { "reactions.$[elem].username": trimmedUsername } },
+      { arrayFilters: [{ "elem.userId": userId }] }
+    );
+  }
+
   return updated;
 }
 

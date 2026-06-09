@@ -218,8 +218,38 @@ function App() {
                 onClose={() => setShowProfile(false)}
                 onLogout={handleLogout} 
                 onUsernameChange={(newName: string) => {
+                  const oldName = username;
                   setUsername(newName);
                   localStorage.setItem('chat_username', newName);
+                  
+                  if (oldName) {
+                    chatState.setMessagesByRoom(prev => {
+                      const next = { ...prev };
+                      for (const room in next) {
+                        next[room] = next[room].map(m => {
+                          let updated = m.username === oldName ? { ...m, username: newName } : m;
+                          if (updated.reactions) {
+                            updated.reactions = updated.reactions.map(r => r.username === oldName ? { ...r, username: newName } : r);
+                          }
+                          return updated;
+                        });
+                      }
+                      return next;
+                    });
+                    chatState.setDmMessagesByConversation(prev => {
+                      const next = { ...prev };
+                      for (const conv in next) {
+                        next[conv] = next[conv].map(m => {
+                          let updated = m.username === oldName ? { ...m, username: newName } : m;
+                          if (updated.reactions) {
+                            updated.reactions = updated.reactions.map(r => r.username === oldName ? { ...r, username: newName } : r);
+                          }
+                          return updated;
+                        });
+                      }
+                      return next;
+                    });
+                  }
                 }}
               />
             </div>
