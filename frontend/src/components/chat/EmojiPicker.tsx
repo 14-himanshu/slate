@@ -40,6 +40,20 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
     const [activeCategory, setActiveCategory] = useState(0);
     const [search, setSearch] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
+    const [recentEmojis, setRecentEmojis] = useState<string[]>(() => {
+        try {
+            return JSON.parse(localStorage.getItem('chat_recent_emojis') || '[]');
+        } catch {
+            return [];
+        }
+    });
+
+    const handleSelect = (emoji: string) => {
+        const next = [emoji, ...recentEmojis.filter(x => x !== emoji)].slice(0, 16);
+        setRecentEmojis(next);
+        localStorage.setItem('chat_recent_emojis', JSON.stringify(next));
+        onSelect(emoji);
+    };
 
     useEffect(() => {
         const handleClick = (e: MouseEvent) => {
@@ -53,10 +67,7 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
     }, [onClose]);
 
     const filteredEmojis = search.trim()
-        ? EMOJI_CATEGORIES.flatMap(c => c.emojis).filter(e => {
-            // Simple search — match the emoji itself or category label  
-            return e.includes(search) || search.length === 0;
-        })
+        ? EMOJI_CATEGORIES.filter(c => c.label.toLowerCase().includes(search.toLowerCase())).flatMap(c => c.emojis)
         : EMOJI_CATEGORIES[activeCategory].emojis;
 
     return (
@@ -98,6 +109,22 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
                     gap: 2, borderBottom: '1px solid var(--border)',
                     scrollbarWidth: 'none',
                 }}>
+                    {recentEmojis.length > 0 && (
+                        <button
+                            title="Recent"
+                            onClick={() => setActiveCategory(-1)}
+                            style={{
+                                flexShrink: 0, padding: '4px 8px',
+                                background: activeCategory === -1 ? 'var(--bg-hover)' : 'transparent',
+                                border: 'none', borderRadius: '6px 6px 0 0',
+                                fontSize: 18, cursor: 'pointer',
+                                borderBottom: activeCategory === -1 ? '2px solid var(--accent)' : '2px solid transparent',
+                                transition: 'all 0.15s',
+                            }}
+                        >
+                            🕒
+                        </button>
+                    )}
                     {EMOJI_CATEGORIES.map((cat, idx) => (
                         <button
                             key={cat.label}
@@ -121,12 +148,36 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
             {/* Emoji grid */}
             <div style={{
                 display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)',
-                gap: 2, padding: '8px', overflowY: 'auto', flex: 1,
+                gap: 2, padding: '8px', overflowY: 'auto', flex: 1, alignContent: 'start',
             }}>
-                {filteredEmojis.map((emoji, i) => (
-                    <button
-                        key={`${emoji}-${i}`}
-                        onClick={() => onSelect(emoji)}
+                {!search && activeCategory === -1 ? (
+                    recentEmojis.map((emoji, i) => (
+                        <button
+                            key={`recent-${emoji}-${i}`}
+                            onClick={() => handleSelect(emoji)}
+                            title={emoji}
+                            style={{
+                                fontSize: 22, padding: '4px', border: 'none',
+                                background: 'transparent', borderRadius: 6, cursor: 'pointer',
+                                lineHeight: 1, transition: 'transform 0.1s, background 0.1s',
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = 'var(--bg-hover)';
+                                e.currentTarget.style.transform = 'scale(1.2)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                        >
+                            {emoji}
+                        </button>
+                    ))
+                ) : (
+                    filteredEmojis.map((emoji, i) => (
+                        <button
+                            key={`${emoji}-${i}`}
+                            onClick={() => handleSelect(emoji)}
                         title={emoji}
                         style={{
                             fontSize: 22, padding: '4px', border: 'none',
@@ -144,7 +195,7 @@ export function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
                     >
                         {emoji}
                     </button>
-                ))}
+                )))}
             </div>
         </div>
     );

@@ -32,7 +32,8 @@ export function ThreadPanel({ parentMessage, messages, username, onClose, onSend
 
   return (
     <div style={{
-      width: '380px',
+      width: '100%',
+      maxWidth: '380px',
       flexShrink: 0,
       background: 'var(--bg-surface)',
       borderLeft: '1px solid var(--border)',

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export interface WebRTCState {
   localStream: MediaStream | null;
@@ -28,6 +28,36 @@ export function useWebRTC(
   });
 
   const peerConnection = useRef<RTCPeerConnection | null>(null);
+  const pendingOffer = useRef<RTCSessionDescriptionInit | null>(null);
+  const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
+  
+  // Refs for stale closures in endCall
+  const activeConversationIdRef = useRef<string | null>(state.activeConversationId);
+  const localStreamRef = useRef<MediaStream | null>(state.localStream);
+
+  useEffect(() => {
+    activeConversationIdRef.current = state.activeConversationId;
+  }, [state.activeConversationId]);
+
+  useEffect(() => {
+    localStreamRef.current = state.localStream;
+  }, [state.localStream]);
+
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (state.isCalling && !state.remoteStream) {
+      timeoutRef.current = setTimeout(() => {
+        endCall();
+        alert("Call timed out: the other person didn't answer.");
+      }, 30000);
+    } else {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    }
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [state.isCalling, state.remoteStream]);
 
   const startMedia = async (video: boolean) => {
     try {
@@ -61,12 +91,23 @@ export function useWebRTC(
   };
 
   const createPeerConnection = (conversationId: string) => {
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
-      ]
-    });
+    const iceServers: RTCIceServer[] = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' }
+    ];
+
+    const turnUrl = import.meta.env.VITE_TURN_URL;
+    const turnUsername = import.meta.env.VITE_TURN_USERNAME;
+    const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL;
+    
+    if (turnUrl) {
+      const turnServer: RTCIceServer = { urls: turnUrl };
+      if (turnUsername) turnServer.username = turnUsername;
+      if (turnCredential) turnServer.credential = turnCredential;
+      iceServers.push(turnServer);
+    }
+
+    const pc = new RTCPeerConnection({ iceServers });
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -122,11 +163,11 @@ export function useWebRTC(
       isVideoCall
     }));
     // We store the offer in a ref to use it when accepting
-    window._pendingWebRTCOffer = offer; 
+    pendingOffer.current = offer; 
   };
 
   const acceptCall = async (video: boolean) => {
-    if (!state.activeConversationId || !window._pendingWebRTCOffer) return;
+    if (!state.activeConversationId || !pendingOffer.current) return;
     
     const stream = await startMedia(video);
     if (!stream) return;
@@ -142,12 +183,22 @@ export function useWebRTC(
     
     stream.getTracks().forEach(track => pc.addTrack(track, stream));
     
-    await pc.setRemoteDescription(new RTCSessionDescription(window._pendingWebRTCOffer));
+    await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer.current));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     
+    // Process queued candidates
+    for (const candidate of iceCandidateQueue.current) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (e) {
+        console.error('Error adding queued ice candidate', e);
+      }
+    }
+    iceCandidateQueue.current = [];
+
     sendSignal(state.activeConversationId, 'callAnswer', answer);
-    window._pendingWebRTCOffer = null;
+    pendingOffer.current = null;
   };
 
   const rejectCall = () => {
@@ -155,35 +206,52 @@ export function useWebRTC(
       sendSignal(state.activeConversationId, 'rejectCall', {});
     }
     setState(s => ({ ...s, isReceivingCall: false, activeConversationId: null, callerUsername: null }));
-    window._pendingWebRTCOffer = null;
+    pendingOffer.current = null;
   };
 
   const handleAnswer = async (answer: RTCSessionDescriptionInit) => {
     if (peerConnection.current) {
       await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
+      
+      // Process queued candidates
+      for (const candidate of iceCandidateQueue.current) {
+        try {
+          await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error('Error adding queued ice candidate', e);
+        }
+      }
+      iceCandidateQueue.current = [];
     }
   };
 
   const handleIceCandidate = async (candidate: RTCIceCandidateInit) => {
     if (peerConnection.current) {
-      try {
-        await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (e) {
-        console.error('Error adding received ice candidate', e);
+      if (!peerConnection.current.remoteDescription) {
+        iceCandidateQueue.current.push(candidate);
+      } else {
+        try {
+          await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error('Error adding received ice candidate', e);
+        }
       }
+    } else {
+      iceCandidateQueue.current.push(candidate);
     }
   };
 
   const endCall = () => {
-    if (state.activeConversationId) {
-      sendSignal(state.activeConversationId, 'endCall', {});
+    if (activeConversationIdRef.current) {
+      sendSignal(activeConversationIdRef.current, 'endCall', {});
     }
     if (peerConnection.current) {
       peerConnection.current.close();
       peerConnection.current = null;
     }
-    if (state.localStream) {
-      state.localStream.getTracks().forEach(track => track.stop());
+    iceCandidateQueue.current = [];
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
     }
     setState({
       localStream: null,
@@ -203,6 +271,7 @@ export function useWebRTC(
       peerConnection.current.close();
       peerConnection.current = null;
     }
+    iceCandidateQueue.current = [];
     if (state.localStream) {
       state.localStream.getTracks().forEach(track => track.stop());
     }
@@ -254,8 +323,3 @@ export function useWebRTC(
   };
 }
 
-declare global {
-  interface Window {
-    _pendingWebRTCOffer: RTCSessionDescriptionInit | null;
-  }
-}

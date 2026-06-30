@@ -1,7 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { DirectConversationSummary, UserSummary } from '../../types';
 import { Avatar, Badge, BrandMark, Icon, IconButton, Icons } from '../ui';
 import { RoomModal } from './RoomModal';
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface SidebarProps {
     userRooms: import('../../types').RoomSummary[];
@@ -59,6 +61,36 @@ export function Sidebar({
     const [dmSearching, setDmSearching] = useState(false);
     const [isRoomsOpen, setIsRoomsOpen] = useState(true);
     const [isDMsOpen, setIsDMsOpen] = useState(true);
+    const { theme, toggleTheme } = useTheme();
+    
+    // Resizable sidebar logic
+    const [sidebarWidth, setSidebarWidth] = useState(() => {
+        const saved = localStorage.getItem('chat_sidebar_width');
+        return saved ? parseInt(saved, 10) : 310;
+    });
+    const isDragging = useRef(false);
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging.current) return;
+            const newWidth = Math.max(240, Math.min(600, e.clientX));
+            setSidebarWidth(newWidth);
+        };
+        const handleMouseUp = () => {
+            if (isDragging.current) {
+                isDragging.current = false;
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
+                localStorage.setItem('chat_sidebar_width', sidebarWidth.toString());
+            }
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [sidebarWidth]);
 
     // Debounced global user search
     useEffect(() => {
@@ -88,12 +120,15 @@ export function Sidebar({
 
     return (
         <aside style={{
+            position: 'relative',
             display: 'flex',
             flexDirection: 'column',
             background: 'var(--bg-sidebar)',
             height: '100%',
+            width: sidebarWidth,
             overflow: 'hidden',
             borderRight: '1px solid var(--border)',
+            flexShrink: 0,
         }}>
             {/* ── Brand bar ──────────────────────────────── */}
             <div style={{
@@ -112,6 +147,15 @@ export function Sidebar({
                         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Slate</div>
                     </div>
                 </div>
+                <button 
+                    onClick={toggleTheme}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 4, borderRadius: 'var(--radius-sm)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    title="Toggle Theme"
+                >
+                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
             </div>
 
             {/* ── Global search ───────────────────────────── */}
@@ -174,8 +218,11 @@ export function Sidebar({
                 {/* ROOMS section */}
                 <div style={{ marginBottom: 16 }}>
                     <div 
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setIsRoomsOpen(!isRoomsOpen)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px', cursor: 'pointer', userSelect: 'none' }}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsRoomsOpen(!isRoomsOpen); } }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px', cursor: 'pointer', userSelect: 'none', borderRadius: 6 }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: isRoomsOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -257,13 +304,19 @@ export function Sidebar({
                 {/* DIRECT MESSAGES section */}
                 <div style={{ marginTop: 16 }}>
                     <div 
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setIsDMsOpen(!isDMsOpen)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px', cursor: 'pointer', userSelect: 'none' }}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsDMsOpen(!isDMsOpen); } }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 8px', cursor: 'pointer', userSelect: 'none', borderRadius: 6 }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: isDMsOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
                             <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Direct Messages</span>
                         </div>
+                        <IconButton label="New Direct Message" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); document.querySelector<HTMLInputElement>('input[placeholder="Search rooms or DMs…"]')?.focus(); }}>
+                            <Icon d={Icons.plus} size={13} />
+                        </IconButton>
                     </div>
 
                     {/* DM Search Results */}
@@ -453,6 +506,27 @@ export function Sidebar({
                     }}
                 />
             )}
+
+            {/* Resize handle */}
+            <div
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    isDragging.current = true;
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none';
+                }}
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: -2,
+                    width: 5,
+                    height: '100%',
+                    cursor: 'col-resize',
+                    zIndex: 10,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-glow)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            />
         </aside>
     );
 }

@@ -8,6 +8,7 @@ import {
   changeUserPassword,
   updateUserPublicKey,
   searchUsersHandler,
+  searchMessagesHandler,
   bookmarkMessage,
   removeBookmark,
   fetchBookmarks,
@@ -44,6 +45,7 @@ router.post("/change-password",requireAuth, wrap(changeUserPassword));
 router.put("/me/public-key",   requireAuth, wrap(updateUserPublicKey));
 router.put("/public-key",      requireAuth, wrap(updateUserPublicKey)); // alias
 router.get("/search",          requireAuth, wrap(searchUsersHandler));
+router.get("/search-messages", requireAuth, wrap(searchMessagesHandler));
 
 router.post("/bookmarks",      requireAuth, wrap(bookmarkMessage));
 router.delete("/bookmarks/:messageId", requireAuth, wrap(removeBookmark));

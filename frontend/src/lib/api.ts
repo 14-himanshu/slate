@@ -63,6 +63,14 @@ export async function updateProfile(body: {
   return data.user;
 }
 
+export async function deleteAccount(): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/user`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  await handleResponse(res);
+}
+
 export async function uploadAvatar(file: File): Promise<UserProfile> {
   const form = new FormData();
   form.append('avatar', file);
@@ -104,12 +112,36 @@ export async function login(username: string, password: string): Promise<{ token
   return await handleResponse<{ token: string, username: string }>(res);
 }
 
+export async function requestPasswordReset(username: string): Promise<{ code: string, message: string }> {
+  const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username }),
+  });
+  return await handleResponse<{ code: string, message: string }>(res);
+}
+
+export async function resetPassword(username: string, code: string, newPassword: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, code, newPassword }),
+  });
+  return await handleResponse<{ message: string }>(res);
+}
+
 import type { DirectConversationSummary, UserSummary } from '../types';
 
 export async function searchUsers(query: string): Promise<UserSummary[]> {
   const res = await fetch(`${API_BASE}/api/user/search?q=${encodeURIComponent(query)}`, { headers: authHeaders() });
   const data = await handleResponse<{ users: UserSummary[] }>(res);
   return data.users;
+}
+
+export async function searchMessages(query: string): Promise<Message[]> {
+  const res = await fetch(`${API_BASE}/api/user/search-messages?q=${encodeURIComponent(query)}`, { headers: authHeaders() });
+  const data = await handleResponse<{ messages: Message[] }>(res);
+  return data.messages;
 }
 
 export async function updatePublicKey(publicKey: string): Promise<void> {
@@ -205,4 +237,16 @@ export async function unsaveMessage(messageId: string): Promise<void> {
     headers: authHeaders()
   });
   await handleResponse(res);
+}
+
+// ── Pins ────────────────────────────────────────────────────────
+// TODO: Implement backend endpoints for pinning
+export async function pinMessage(messageId: string, type: 'room' | 'dm'): Promise<void> {
+  console.warn('pinMessage is not fully implemented in the backend yet.');
+  return Promise.resolve();
+}
+
+export async function unpinMessage(messageId: string): Promise<void> {
+  console.warn('unpinMessage is not fully implemented in the backend yet.');
+  return Promise.resolve();
 }

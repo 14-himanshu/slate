@@ -34,6 +34,15 @@ export function useChat(
   const activeConversationIdRef = useRef<string | null>(storedActiveDm);
   const activeSectionRef = useRef<'rooms' | 'dm'>(storedActiveSection);
   const activeRoomRef = useRef<string | null>(activeRoom);
+  const offlineQueue = useRef<string[]>([]);
+
+  const _sendWebSocketMessage = useCallback((msgStr: string) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(msgStr);
+    } else {
+      offlineQueue.current.push(msgStr);
+    }
+  }, []);
 
   useEffect(() => { localStorage.setItem('chat_rooms', JSON.stringify(joinedRooms)); }, [joinedRooms]);
   useEffect(() => { localStorage.setItem('chat_active_section', activeSection); }, [activeSection]);
@@ -97,6 +106,11 @@ export function useChat(
         for (const roomId of rooms) ws?.send(JSON.stringify({ type: 'joinRoom', payload: { roomId } }));
         for (const conversation of directConversationsRef.current) ws?.send(JSON.stringify({ type: 'joinDm', payload: { conversationId: conversation.id, includeHistory: 'false' } }));
         if (activeConversationIdRef.current) ws?.send(JSON.stringify({ type: 'joinDm', payload: { conversationId: activeConversationIdRef.current, includeHistory: 'true' } }));
+        
+        if (offlineQueue.current.length > 0) {
+          offlineQueue.current.forEach(msg => ws?.send(msg));
+          offlineQueue.current = [];
+        }
       };
 
       ws.onmessage = (event) => {
@@ -281,28 +295,27 @@ export function useChat(
   useEffect(() => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     for (const conversation of directConversations) {
-      wsRef.current.send(JSON.stringify({ type: 'joinDm', payload: { conversationId: conversation.id, includeHistory: 'false' } }));
+      _sendWebSocketMessage(JSON.stringify({ type: 'joinDm', payload: { conversationId: conversation.id, includeHistory: 'false' } }));
     }
   }, [directConversations]);
 
   useEffect(() => {
     if (!activeConversationId || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'joinDm', payload: { conversationId: activeConversationId, includeHistory: 'true' } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'joinDm', payload: { conversationId: activeConversationId, includeHistory: 'true' } }));
     markDirectConversationRead(activeConversationId).catch(() => undefined);
   }, [activeConversationId]);
 
   const joinRoom = useCallback((roomId: string) => {
     const id = roomId.trim().toUpperCase();
-    if (!id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'joinRoom', payload: { roomId: id } }));
+    if (!id) return;
+    _sendWebSocketMessage(JSON.stringify({ type: 'joinRoom', payload: { roomId: id } }));
     setJoinedRooms(prev => prev.includes(id) ? prev : [...prev, id]);
     setActiveRoom(id); setActiveSection('rooms');
     setUnreadByRoom(prev => ({ ...prev, [id]: 0 }));
   }, []);
 
   const leaveRoom = useCallback((roomId: string) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'leaveRoom', payload: { roomId } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'leaveRoom', payload: { roomId } }));
     setJoinedRooms(prev => {
       const next = prev.filter(r => r !== roomId);
       setActiveRoom(cur => cur === roomId ? (next[0] ?? null) : cur);
@@ -322,9 +335,9 @@ export function useChat(
   const selectConversation = useCallback((conversationId: string) => {
     setActiveConversationId(conversationId); setActiveSection('dm');
     setDirectConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c));
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'joinDm', payload: { conversationId, includeHistory: 'true' } }));
-      wsRef.current.send(JSON.stringify({ type: 'dmRead', payload: { conversationId } }));
+    if (wsRef.current) {
+      _sendWebSocketMessage(JSON.stringify({ type: 'joinDm', payload: { conversationId, includeHistory: 'true' } }));
+      _sendWebSocketMessage(JSON.stringify({ type: 'dmRead', payload: { conversationId } }));
     }
     markDirectConversationRead(conversationId).catch(() => undefined);
   }, []);
@@ -338,8 +351,8 @@ export function useChat(
         return [conversation, ...prev];
       });
       setActiveConversationId(conversation.id); setActiveSection('dm');
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'joinDm', payload: { conversationId: conversation.id, includeHistory: 'true' } }));
+      if (wsRef.current) {
+        _sendWebSocketMessage(JSON.stringify({ type: 'joinDm', payload: { conversationId: conversation.id, includeHistory: 'true' } }));
       }
     } catch (err) { console.error('Failed to start conversation:', err); }
   }, []);
@@ -358,7 +371,7 @@ export function useChat(
   }, []);
 
   const sendMessage = useCallback(async (inputValue: string, replyToId?: string, threadId?: string) => {
-    if (!inputValue.trim() || !activeRoom || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    if (!inputValue.trim() || !activeRoom) return;
     
     let linkPreview: any = undefined;
     const urlMatch = inputValue.match(/https?:\/\/[^\s]+/);
@@ -371,28 +384,28 @@ export function useChat(
       }
     }
     
-    wsRef.current.send(JSON.stringify({ type: 'chat', payload: { roomId: activeRoom, message: inputValue.trim(), messageType: 'text', replyTo: replyToId, linkPreview, threadId } }));
-    wsRef.current.send(JSON.stringify({ type: 'typing', payload: { roomId: activeRoom, isTyping: 'false' } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'chat', payload: { roomId: activeRoom, message: inputValue.trim(), messageType: 'text', replyTo: replyToId, linkPreview, threadId } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'typing', payload: { roomId: activeRoom, isTyping: 'false' } }));
   }, [activeRoom]);
 
   const editMessage = useCallback((msgId: string, text: string) => {
-    if (!activeRoom || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'editMessage', payload: { roomId: activeRoom, messageId: msgId, message: text } }));
+    if (!activeRoom) return;
+    _sendWebSocketMessage(JSON.stringify({ type: 'editMessage', payload: { roomId: activeRoom, messageId: msgId, message: text } }));
   }, [activeRoom]);
 
   const deleteMessage = useCallback((msgId: string) => {
-    if (!activeRoom || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'deleteMessage', payload: { roomId: activeRoom, messageId: msgId } }));
+    if (!activeRoom) return;
+    _sendWebSocketMessage(JSON.stringify({ type: 'deleteMessage', payload: { roomId: activeRoom, messageId: msgId } }));
   }, [activeRoom]);
 
   const reactMessage = useCallback((msgId: string, icon: string) => {
-    if (!activeRoom || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'reactMessage', payload: { roomId: activeRoom, messageId: msgId, icon } }));
+    if (!activeRoom) return;
+    _sendWebSocketMessage(JSON.stringify({ type: 'reactMessage', payload: { roomId: activeRoom, messageId: msgId, icon } }));
   }, [activeRoom]);
 
   const handleTyping = useCallback((isTyping: boolean) => {
-    if (!activeRoom || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'typing', payload: { roomId: activeRoom, isTyping: isTyping ? 'true' : 'false' } }));
+    if (!activeRoom) return;
+    _sendWebSocketMessage(JSON.stringify({ type: 'typing', payload: { roomId: activeRoom, isTyping: isTyping ? 'true' : 'false' } }));
   }, [activeRoom]);
 
   const sendFileMessage = useCallback(async (file: File, caption?: string, replyToId?: string, threadId?: string) => {
@@ -402,11 +415,11 @@ export function useChat(
     const res = await fetch(`${apiBase}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
     if (!res.ok) throw new Error(await res.text());
     const { url, fileName, fileType } = await res.json() as { url: string; fileName: string; fileType: 'image' | 'file' };
-    wsRef.current.send(JSON.stringify({ type: 'chat', payload: { roomId: activeRoom, message: caption ?? '', messageType: fileType, fileUrl: url, fileName, replyTo: replyToId, threadId } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'chat', payload: { roomId: activeRoom, message: caption ?? '', messageType: fileType, fileUrl: url, fileName, replyTo: replyToId, threadId } }));
   }, [activeRoom, token]);
 
   const sendDirectMessage = useCallback(async (inputValue: string, replyToId?: string) => {
-    if (!inputValue.trim() || !activeConversationId || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    if (!inputValue.trim() || !activeConversationId) return;
     
     let linkPreview: any = undefined;
     const urlMatch = inputValue.match(/https?:\/\/[^\s]+/);
@@ -449,8 +462,8 @@ export function useChat(
       console.error("E2EE encryption failed, sending plaintext...", e);
     }
 
-    wsRef.current.send(JSON.stringify({ type: 'dmMessage', payload }));
-    wsRef.current.send(JSON.stringify({ type: 'dmTyping', payload: { conversationId: activeConversationId, isTyping: 'false' } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'dmMessage', payload }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'dmTyping', payload: { conversationId: activeConversationId, isTyping: 'false' } }));
   }, [activeConversationId, username]);
 
   const sendDirectFileMessage = useCallback(async (file: File, caption?: string, replyToId?: string) => {
@@ -460,42 +473,39 @@ export function useChat(
     const res = await fetch(`${apiBase}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
     if (!res.ok) throw new Error(await res.text());
     const { url, fileName, fileType } = await res.json() as { url: string; fileName: string; fileType: 'image' | 'file' };
-    wsRef.current.send(JSON.stringify({ type: 'dmMessage', payload: { conversationId: activeConversationId, message: caption ?? '', messageType: fileType, fileUrl: url, fileName, replyTo: replyToId } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'dmMessage', payload: { conversationId: activeConversationId, message: caption ?? '', messageType: fileType, fileUrl: url, fileName, replyTo: replyToId } }));
   }, [activeConversationId, token]);
 
   const editDirectMessage = useCallback((msgId: string, text: string) => {
-    if (!activeConversationId || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'editDmMessage', payload: { conversationId: activeConversationId, messageId: msgId, message: text } }));
+    if (!activeConversationId) return;
+    _sendWebSocketMessage(JSON.stringify({ type: 'editDmMessage', payload: { conversationId: activeConversationId, messageId: msgId, message: text } }));
   }, [activeConversationId]);
 
   const deleteDirectMessage = useCallback((msgId: string) => {
-    if (!activeConversationId || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'deleteDmMessage', payload: { conversationId: activeConversationId, messageId: msgId } }));
+    if (!activeConversationId) return;
+    _sendWebSocketMessage(JSON.stringify({ type: 'deleteDmMessage', payload: { conversationId: activeConversationId, messageId: msgId } }));
   }, [activeConversationId]);
 
   const reactDirectMessage = useCallback((msgId: string, icon: string) => {
-    if (!activeConversationId || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'reactDmMessage', payload: { conversationId: activeConversationId, messageId: msgId, icon } }));
+    if (!activeConversationId) return;
+    _sendWebSocketMessage(JSON.stringify({ type: 'reactDmMessage', payload: { conversationId: activeConversationId, messageId: msgId, icon } }));
   }, [activeConversationId]);
 
   const handleDirectTyping = useCallback((isTyping: boolean) => {
-    if (!activeConversationId || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'dmTyping', payload: { conversationId: activeConversationId, isTyping: isTyping ? 'true' : 'false' } }));
+    if (!activeConversationId) return;
+    _sendWebSocketMessage(JSON.stringify({ type: 'dmTyping', payload: { conversationId: activeConversationId, isTyping: isTyping ? 'true' : 'false' } }));
   }, [activeConversationId]);
 
   const loadMoreMessages = useCallback((roomId: string, beforeDate: Date) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'loadMoreRoomHistory', payload: { roomId, before: beforeDate.toISOString() } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'loadMoreRoomHistory', payload: { roomId, before: beforeDate.toISOString() } }));
   }, []);
 
   const loadThreadMessages = useCallback((threadId: string, beforeDate?: Date) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'loadThreadHistory', payload: { threadId, before: beforeDate?.toISOString() } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'loadThreadHistory', payload: { threadId, before: beforeDate?.toISOString() } }));
   }, []);
 
   const loadMoreDmMessages = useCallback((conversationId: string, beforeDate: Date) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ type: 'loadMoreDmHistory', payload: { conversationId, before: beforeDate.toISOString() } }));
+    _sendWebSocketMessage(JSON.stringify({ type: 'loadMoreDmHistory', payload: { conversationId, before: beforeDate.toISOString() } }));
   }, []);
 
   return {

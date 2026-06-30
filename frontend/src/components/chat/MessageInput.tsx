@@ -93,6 +93,11 @@ export function MessageInput({
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        if (file.size > 10 * 1024 * 1024) {
+            window.alert('File size exceeds the 10MB limit.');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
         const isImage = file.type.startsWith('image/');
         setPreview({ url: isImage ? URL.createObjectURL(file) : '', name: file.name, isImage });
     };
@@ -221,6 +226,7 @@ export function MessageInput({
         : isOffline ? 'Reconnecting…'
         : editingMsg ? 'Edit your message…'
         : isRecording ? 'Recording...'
+        : preview ? 'Add a caption...'
         : 'Write a message…';
 
     return (

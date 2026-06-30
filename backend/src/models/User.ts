@@ -12,6 +12,8 @@ export interface IUser extends Document {
   publicKey?: string;
   savedMessages: Array<{ messageId: string; type: 'room' | 'dm'; addedAt: Date }>;
   lastSeen: Date;
+  resetPasswordCode?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +66,14 @@ const userSchema = new Schema<IUser>(
         addedAt: { type: Date, default: () => new Date() },
       }],
       default: [],
+    },
+    resetPasswordCode: {
+      type: String,
+      default: undefined,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: undefined,
     },
   },
   { timestamps: true }

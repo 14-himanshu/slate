@@ -2,16 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Slate</title>
+    <title>Slate - Real-Time Chat</title>
+    
+    <!-- SEO & Social Meta Tags -->
+    <meta name="description" content="Slate — Real-time messaging for modern engineering teams. Powered by WebSockets, built on an enterprise-grade stack." />
+    <meta property="og:title" content="Slate — Real-Time Chat. Zero Compromises." />
+    <meta property="og:description" content="Experience instant communication powered by WebSockets." />
+    <meta property="og:image" content="/logo.png" />
+    <meta property="og:url" content="https://slate.app" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Slate" />
+    <meta name="twitter:image" content="/logo.png" />
+
+    <!-- Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <script>
       (function() {
+        // Apply theme immediately to prevent flash
         const saved = localStorage.getItem('app-theme');
         if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.classList.add('dark');
         } else {
           document.documentElement.classList.remove('dark');
+        }
+
+        // Hide scrollbar immediately on landing page to prevent flash on refresh
+        if (window.location.pathname === '/') {
+          document.documentElement.classList.add('no-scrollbar');
         }
       })();
     </script>

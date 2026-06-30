@@ -6,6 +6,7 @@ import {
   changePassword,
   updateAvatar,
   searchUsers,
+  searchAllMessages,
   saveMessage,
   unsaveMessage,
   getSavedMessages,
@@ -151,6 +152,22 @@ export async function searchUsersHandler(req: AuthRequest, res: Response): Promi
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Search failed.";
+    res.status(500).json({ error: msg });
+  }
+}
+
+/** GET /api/user/search-messages?q=... */
+export async function searchMessagesHandler(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const q = (req.query.q as string ?? "").trim();
+    if (!q || q.length < 1) {
+      res.json({ messages: [] });
+      return;
+    }
+    const messages = await searchAllMessages(q, req.user.userId);
+    res.json({ messages });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Message search failed.";
     res.status(500).json({ error: msg });
   }
 }

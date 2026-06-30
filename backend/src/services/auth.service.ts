@@ -66,3 +66,45 @@ export async function authenticateUser(
 
   return signToken({ userId: user._id.toString(), username: user.username });
 }
+
+/** Generate a 6-digit password reset code for a user */
+export async function generateResetCode(username: string): Promise<string> {
+  const user = await User.findOne({ username });
+  if (!user) throw new Error("User not found.");
+
+  // Generate a random 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Set expiry to 15 mins from now
+  const expires = new Date();
+  expires.setMinutes(expires.getMinutes() + 15);
+
+  user.resetPasswordCode = code;
+  user.resetPasswordExpires = expires;
+  await user.save();
+
+  return code;
+}
+
+/** Reset password using the 6-digit code */
+export async function resetPassword(username: string, code: string, newPassword: string): Promise<void> {
+  const user = await User.findOne({ username });
+  if (!user) throw new Error("User not found.");
+  if (!user.resetPasswordCode || !user.resetPasswordExpires) {
+    throw new Error("No password reset requested.");
+  }
+  
+  if (user.resetPasswordCode !== code) {
+    throw new Error("Invalid reset code.");
+  }
+
+  if (user.resetPasswordExpires < new Date()) {
+    throw new Error("Reset code has expired.");
+  }
+
+  const hashed = await hashPassword(newPassword);
+  user.password = hashed;
+  user.set('resetPasswordCode', undefined);
+  user.set('resetPasswordExpires', undefined);
+  await user.save();
+}

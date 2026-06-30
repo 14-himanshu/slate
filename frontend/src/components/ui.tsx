@@ -346,7 +346,7 @@ export function Badge({ count, max = 99 }: { count: number; max?: number }) {
 export function BrandMark({ size = 32 }: { size?: number }) {
     return (
         <img 
-            src="/logo.png" 
+            src="/favicon.svg" 
             alt="Slate Logo" 
             style={{
                 width: size, 

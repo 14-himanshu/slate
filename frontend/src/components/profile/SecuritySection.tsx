@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { changePassword } from '../../lib/api';
+import { changePassword, deleteAccount } from '../../lib/api';
 import { Button, Icon, Icons } from '../ui';
 
 interface Props {
@@ -108,26 +108,57 @@ export default function SecuritySection({ onToast, onLogout }: Props) {
             <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 2 }}>Sign out</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>You will need to sign back in.</div>
           </div>
-          <button
-            onClick={onLogout}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 14px',
-              background: 'none',
-              border: '1px solid var(--danger)',
-              borderRadius: 8,
-              color: 'var(--danger)',
-              fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
-              transition: 'all 0.12s',
-              flexShrink: 0,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-bg)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
-          >
-            <Icon d={Icons.logOut} size={14} />
-            Sign Out
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
+            <button
+              onClick={onLogout}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 14px',
+                background: 'none',
+                border: '1px solid var(--danger)',
+                borderRadius: 8,
+                color: 'var(--danger)',
+                fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 0.12s',
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-bg)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+            >
+              <Icon d={Icons.logOut} size={14} />
+              Sign Out
+            </button>
+            <button
+              onClick={async () => {
+                if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+                  try {
+                    await deleteAccount();
+                    onLogout();
+                  } catch (err) {
+                    onToast(err instanceof Error ? err.message : 'Failed to delete account.', 'error');
+                  }
+                }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 14px',
+                background: 'none',
+                border: '1px solid var(--danger)',
+                borderRadius: 8,
+                color: 'var(--danger)',
+                fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 0.12s',
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-bg)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+            >
+              <Icon d={Icons.trash} size={14} />
+              Delete Account
+            </button>
+          </div>
         </div>
       </div>
     </div>

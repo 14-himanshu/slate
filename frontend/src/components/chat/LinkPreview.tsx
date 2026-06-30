@@ -39,7 +39,7 @@ export function LinkPreview({ title, description, image, url }: LinkPreviewProps
         >
             {image && (
                 <div style={{ width: '100%', height: 180, overflow: 'hidden', background: 'var(--bg-surface)' }}>
-                    <img src={image} alt={title || 'Link preview'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={image} alt={title || 'Link preview'} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
             )}
             <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>

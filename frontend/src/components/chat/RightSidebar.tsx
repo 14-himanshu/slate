@@ -8,6 +8,7 @@ interface RightSidebarProps {
     onlineUsers: string[];
     currentUser: string | null;
     activeConversation: DirectConversationSummary | null;
+    messages?: import('../../types').Message[] | import('../../types').DirectMessage[];
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({
@@ -15,7 +16,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     activeSection,
     onlineUsers,
     currentUser,
-    activeConversation
+    activeConversation,
+    messages = []
 }) => {
     if (!isOpen) return null;
 
@@ -66,7 +68,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                             About Me
                         </div>
                         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, letterSpacing: '0.03em' }}>
-                            Hey there! I am using Slate. 🚀
+                            {activeConversation.user.statusMessage || 'Hey there! I am using Slate. 🚀'}
                         </p>
                     </div>
 
@@ -75,11 +77,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                             Shared Media
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} style={{ aspectRatio: '1', background: '#16191E', borderRadius: 8, border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                                    <Icon d={Icons.image} size={24} />
+                            {messages.filter(m => m.type === 'image' && m.fileUrl).slice(0, 4).map((m, i) => (
+                                <div key={m.id || i} style={{ aspectRatio: '1', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+                                    <img src={m.fileUrl} alt="Shared media" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 </div>
                             ))}
+                            {messages.filter(m => m.type === 'image' && m.fileUrl).length === 0 && (
+                                <div style={{ gridColumn: '1 / -1', textAlign: 'center', fontSize: 13, color: 'var(--text-muted)', padding: '20px 0' }}>No shared media</div>
+                            )}
                         </div>
                     </div>
                 </div>

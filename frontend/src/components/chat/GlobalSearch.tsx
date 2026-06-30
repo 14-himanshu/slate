@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { searchMessages } from '../../lib/api';
 
 interface SearchResult {
     id: string;
@@ -25,6 +26,19 @@ export function GlobalSearch({ onClose, messages, rooms, conversations, onJumpTo
     const [results, setResults] = useState<SearchResult[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
+    const [recentItems, setRecentItems] = useState<SearchResult[]>(() => {
+        try {
+            return JSON.parse(localStorage.getItem('chat_recent_searches') || '[]');
+        } catch {
+            return [];
+        }
+    });
+
+    const saveRecent = (r: SearchResult) => {
+        const next = [r, ...recentItems.filter(x => x.id !== r.id)].slice(0, 5);
+        setRecentItems(next);
+        localStorage.setItem('chat_recent_searches', JSON.stringify(next));
+    };
 
     useEffect(() => {
         inputRef.current?.focus();
@@ -33,7 +47,7 @@ export function GlobalSearch({ onClose, messages, rooms, conversations, onJumpTo
     useEffect(() => {
         if (!query.trim()) { setResults([]); return; }
         const q = query.toLowerCase();
-        const found: SearchResult[] = [];
+        let found: SearchResult[] = [];
 
         // Rooms
         rooms.forEach(r => {
@@ -64,6 +78,31 @@ export function GlobalSearch({ onClose, messages, rooms, conversations, onJumpTo
 
         setResults(found.slice(0, 12));
         setSelectedIndex(0);
+
+        // Backend search for messages
+        const timeoutId = setTimeout(async () => {
+            try {
+                const apiMessages = await searchMessages(q);
+                setResults(prev => {
+                    const next = [...prev];
+                    apiMessages.forEach(m => {
+                        if (!next.some(r => r.id === m.id)) {
+                            next.push({
+                                id: m.id, type: 'message',
+                                title: m.text?.length > 80 ? m.text.slice(0, 80) + '…' : m.text,
+                                subtitle: `${m.username} · ${new Date(m.timestamp).toLocaleDateString()}`,
+                                roomId: m.roomId, conversationId: m.conversationId
+                            });
+                        }
+                    });
+                    return next.slice(0, 20);
+                });
+            } catch (err) {
+                console.error("Backend search failed:", err);
+            }
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
     }, [query, messages, rooms, conversations]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -74,6 +113,7 @@ export function GlobalSearch({ onClose, messages, rooms, conversations, onJumpTo
     };
 
     const handleSelect = (r: SearchResult) => {
+        saveRecent(r);
         if (r.type === 'room' && r.roomId) { onJumpToRoom(r.roomId); }
         else if (r.type === 'user' && r.conversationId) { onJumpToConversation(r.conversationId); }
         else if (r.type === 'message') {
@@ -191,13 +231,49 @@ export function GlobalSearch({ onClose, messages, rooms, conversations, onJumpTo
                 )}
 
                 {!query.trim() && (
-                    <div style={{ padding: '20px 16px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {[['Channels', '#'], ['People', '@'], ['Files', '📎']].map(([label, icon]) => (
-                            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'var(--bg-elevated)', borderRadius: 20, fontSize: 12, color: 'var(--text-secondary)' }}>
-                                <span>{icon}</span>{label}
+                    <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {[['Channels', '#'], ['People', '@'], ['Files', '📎']].map(([label, icon]) => (
+                                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'var(--bg-elevated)', borderRadius: 20, fontSize: 12, color: 'var(--text-secondary)' }}>
+                                    <span>{icon}</span>{label}
+                                </div>
+                            ))}
+                        </div>
+                        {recentItems.length > 0 && (
+                            <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Recent</div>
+                                {recentItems.map(r => (
+                                    <button
+                                        key={r.id}
+                                        onClick={() => handleSelect(r)}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: 12,
+                                            width: '100%', padding: '8px 12px', margin: '0 -12px',
+                                            background: 'transparent',
+                                            border: 'none', textAlign: 'left', cursor: 'pointer',
+                                            borderRadius: 8,
+                                            transition: 'background 0.1s',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <div style={{
+                                            width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                                            background: 'var(--bg-elevated)', color: colorFor(r.type),
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                            {iconFor(r.type)}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {r.title}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
-                        ))}
-                        <div style={{ width: '100%', marginTop: 4, fontSize: 11, color: 'var(--text-muted)' }}>
+                        )}
+                        <div style={{ width: '100%', fontSize: 11, color: 'var(--text-muted)' }}>
                             Use ↑↓ to navigate · Enter to select · Esc to dismiss
                         </div>
                     </div>
