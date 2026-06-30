@@ -1,5 +1,5 @@
 import React from 'react';
-import { Avatar, Icon, Icons } from '../ui';
+import { Avatar } from '../ui';
 import type { DirectConversationSummary } from '../../types';
 
 interface RightSidebarProps {

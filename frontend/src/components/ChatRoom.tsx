@@ -271,7 +271,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                 onlineUsers={onlineUsers}
                 currentUser={currentUser}
                 activeConversation={activeConversation || null}
-                messages={messages}
+                messages={messages as any}
             />
 
             {/* Main area */}
@@ -547,7 +547,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
             <PinnedMessagesModal
                 isOpen={isPinnedOpen}
                 onClose={() => setIsPinnedOpen(false)}
-                messages={messages}
+                messages={messages as any}
                 onUnpin={handleUnpin}
             />
 

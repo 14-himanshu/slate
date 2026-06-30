@@ -241,12 +241,12 @@ export async function unsaveMessage(messageId: string): Promise<void> {
 
 // ── Pins ────────────────────────────────────────────────────────
 // TODO: Implement backend endpoints for pinning
-export async function pinMessage(messageId: string, type: 'room' | 'dm'): Promise<void> {
+export async function pinMessage(_messageId: string, _type: 'room' | 'dm'): Promise<void> {
   console.warn('pinMessage is not fully implemented in the backend yet.');
   return Promise.resolve();
 }
 
-export async function unpinMessage(messageId: string): Promise<void> {
+export async function unpinMessage(_messageId: string): Promise<void> {
   console.warn('unpinMessage is not fully implemented in the backend yet.');
   return Promise.resolve();
 }

@@ -43,7 +43,7 @@ export function useWebRTC(
     localStreamRef.current = state.localStream;
   }, [state.localStream]);
 
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (state.isCalling && !state.remoteStream) {

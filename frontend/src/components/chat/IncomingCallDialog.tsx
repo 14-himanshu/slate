@@ -13,7 +13,7 @@ export function IncomingCallDialog({ callerUsername, isVideoCall = true, onAccep
     let ctx: AudioContext | null = null;
     let osc: OscillatorNode | null = null;
     let gain: GainNode | null = null;
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
 
     try {
       ctx = new (window.AudioContext || (window as any).webkitAudioContext)();

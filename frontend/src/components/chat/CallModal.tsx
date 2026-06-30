@@ -27,7 +27,7 @@ function ControlBtn({
         onClick={onClick}
         title={label}
         style={{
-          width: 52, height: 52, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer',
+          width: 52, height: 52, borderRadius: '50%', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: danger ? 'var(--danger)' : active ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.5)',
           color: active ? '#000' : '#fff',
@@ -75,7 +75,7 @@ export function CallModal({
   const dragOffset = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     if (remoteStream) {
       timer = setInterval(() => setDuration(d => d + 1), 1000);
     }

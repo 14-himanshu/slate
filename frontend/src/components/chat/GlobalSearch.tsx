@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { searchMessages } from '../../lib/api';
 
 interface SearchResult {
@@ -71,7 +71,7 @@ export function GlobalSearch({ onClose, messages, rooms, conversations, onJumpTo
                     id: m.id, type: 'message',
                     title: m.text.length > 80 ? m.text.slice(0, 80) + '…' : m.text,
                     subtitle: `${m.username} · ${m.timestamp.toLocaleDateString()}`,
-                    roomId: m.roomId, conversationId: m.conversationId
+                    roomId: m.roomId, conversationId: (m as any).conversationId
                 });
             }
         });
@@ -91,7 +91,7 @@ export function GlobalSearch({ onClose, messages, rooms, conversations, onJumpTo
                                 id: m.id, type: 'message',
                                 title: m.text?.length > 80 ? m.text.slice(0, 80) + '…' : m.text,
                                 subtitle: `${m.username} · ${new Date(m.timestamp).toLocaleDateString()}`,
-                                roomId: m.roomId, conversationId: m.conversationId
+                                roomId: m.roomId, conversationId: (m as any).conversationId
                             });
                         }
                     });

@@ -153,7 +153,7 @@ export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, 
     );
 }
 
-export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLastInGroup = true, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, onToggleSave, isSaved, onPin, activeMenuMessageId, setActiveMenuMessageId }: any) {
+export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLastInGroup = true, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, onToggleSave, isSaved, activeMenuMessageId, setActiveMenuMessageId }: any) {
     const [isHovered, setIsHovered] = useState(false);
     const [decryptedText, setDecryptedText] = useState<string | null>(null);
     const [decryptedLinkPreview, setDecryptedLinkPreview] = useState<any>(null);
