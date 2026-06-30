@@ -159,3 +159,40 @@ export async function getSavedMessages(userId: string) {
 
   return allMessages.sort((a, b) => b.savedAt.getTime() - a.savedAt.getTime());
 }
+
+export async function searchAllMessages(query: string, userId: string) {
+  const { Message } = await import("../models/Message.js");
+  const { DirectMessage } = await import("../models/DirectMessage.js");
+  const { DirectConversationMember } = await import("../models/DirectConversationMember.js");
+
+  const dmMemberships = await DirectConversationMember.find({ userId });
+  const conversationIds = dmMemberships.map(m => m.conversationId);
+
+  const roomMessages = await Message.find({
+    message: { $regex: query, $options: "i" }
+  })
+    .sort({ timestamp: -1 })
+    .limit(20)
+    .lean();
+
+  const dmMessages = await DirectMessage.find({
+    conversationId: { $in: conversationIds },
+    message: { $regex: query, $options: "i" }
+  })
+    .sort({ timestamp: -1 })
+    .limit(20)
+    .lean();
+
+  const allMessages = [...roomMessages, ...dmMessages]
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, 30);
+    
+  return allMessages.map(m => {
+    return {
+      ...(m as any),
+      id: m._id ? m._id.toString() : (m as any).id,
+      text: m.message,
+      type: m.type || 'text',
+    };
+  });
+}

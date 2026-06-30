@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import type { UserProfile } from '../../types';
 import { fetchProfile } from '../../lib/api';
@@ -32,6 +32,38 @@ export default function ProfilePage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && containerRef.current) {
+        const focusableElements = containerRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button, textarea, input[type="text"], input[type="radio"], input[type="checkbox"], input[type="file"], select, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const { theme, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState(() => localStorage.getItem('chat_notifications') === 'true');
@@ -81,7 +113,9 @@ export default function ProfilePage({
 
   return (
     <>
-      <div style={{
+      <div 
+        ref={containerRef}
+        style={{
         display: 'flex', flexDirection: 'column',
         background: 'var(--bg-surface)',
         borderRadius: 12,

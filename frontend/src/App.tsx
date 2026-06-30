@@ -155,7 +155,7 @@ function App() {
 
   return (
     <div style={{
-      width: '100vw', height: '100vh',
+      width: '100%', height: '100vh',
       display: 'flex',
       background: 'var(--bg-surface)',
       overflow: 'hidden',
@@ -291,6 +291,7 @@ function App() {
             remoteStream={webRTC.remoteStream}
             isAudioMuted={webRTC.isAudioMuted}
             isVideoOff={webRTC.isVideoOff}
+            callerName={webRTC.callerUsername || (webRTC.activeConversationId ? chatState.directConversations.find(c => c.id === webRTC.activeConversationId)?.user.username : undefined)}
             onEndCall={webRTC.endCall}
             onToggleMute={webRTC.toggleMute}
             onToggleVideo={webRTC.toggleVideo}

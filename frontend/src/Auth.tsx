@@ -1,29 +1,12 @@
 import { useState } from 'react';
-import { login, signup } from './lib/api';
-import { BrandMark, Icons, Icon } from './components/ui';
+import { login, signup, requestPasswordReset, resetPassword } from './lib/api';
+import { Icons, Icon, BrandMark } from './components/ui';
 
 interface AuthProps {
     onAuth: (username: string, token: string) => void;
 }
 
-function FeatureItem({ icon, label, desc }: { icon: string; label: string; desc: string }) {
-    return (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-            <div style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: 'rgba(255,255,255,0.12)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-            }}>
-                <Icon d={icon} size={16} color="rgba(255,255,255,0.9)" strokeWidth={1.75} />
-            </div>
-            <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 2 }}>{label}</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{desc}</div>
-            </div>
-        </div>
-    );
-}
+
 
 function InputField({
     id, label, type = 'text', value, onChange, placeholder, autoComplete, autoFocus, error
@@ -93,12 +76,16 @@ function InputField({
 }
 
 export default function Auth({ onAuth }: AuthProps) {
-    const [isLogin, setIsLogin] = useState(true);
+    const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot-req' | 'forgot-reset'>(
+        window.location.pathname === '/signup' ? 'signup' : 'login'
+    );
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
+    const [resetCode, setResetCode] = useState('');
+    const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string; resetCode?: string }>({});
     const [globalError, setGlobalError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [mockEmailToast, setMockEmailToast] = useState('');
 
     const clearErrors = () => { setGlobalError(''); setFieldErrors({}); };
 
@@ -108,39 +95,65 @@ export default function Auth({ onAuth }: AuthProps) {
 
         const newErrors: typeof fieldErrors = {};
         let hasError = false;
+        
         if (!username.trim()) { newErrors.username = 'Username is required'; hasError = true; }
         else if (username.trim().length < 3) { newErrors.username = 'At least 3 characters'; hasError = true; }
-        if (!password) { newErrors.password = 'Password is required'; hasError = true; }
-        else if (password.length < 8) { newErrors.password = 'At least 8 characters'; hasError = true; }
+        else if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) { newErrors.username = 'Only letters, numbers, and underscores'; hasError = true; }
+        
+        if (authMode !== 'forgot-req') {
+            if (!password) { newErrors.password = 'Password is required'; hasError = true; }
+            else if (password.length < 8) { newErrors.password = 'At least 8 characters'; hasError = true; }
+        }
+
+        if (authMode === 'forgot-reset') {
+            if (!resetCode.trim()) { newErrors.resetCode = 'Code is required'; hasError = true; }
+        }
+
         if (hasError) { setFieldErrors(newErrors); return; }
 
         setIsLoading(true);
         try {
-            const fn = isLogin ? login : signup;
-            const { token, username: returnedUsername } = await fn(username.trim(), password);
-            localStorage.setItem('chat_token', token);
-            localStorage.setItem('chat_username', returnedUsername);
+            if (authMode === 'forgot-req') {
+                const { code } = await requestPasswordReset(username.trim());
+                setMockEmailToast(`Simulated Email: Your reset code is ${code}`);
+                setAuthMode('forgot-reset');
+            } else if (authMode === 'forgot-reset') {
+                await resetPassword(username.trim(), resetCode.trim(), password);
+                setMockEmailToast('');
+                setGlobalError('');
+                setAuthMode('login');
+                setPassword('');
+                setResetCode('');
+                // Note: Not setting global error, but maybe a success message if needed.
+                // For simplicity, we just drop them into login with username pre-filled.
+                setTimeout(() => alert('Password reset successful. You can now sign in.'), 100);
+            } else {
+                const fn = authMode === 'login' ? login : signup;
+                const { token, username: returnedUsername } = await fn(username.trim(), password);
+                localStorage.setItem('chat_token', token);
+                localStorage.setItem('chat_username', returnedUsername);
 
-            // E2EE Key Management — skip silently if crypto.subtle unavailable (HTTP non-localhost)
-            if (window.crypto?.subtle) {
-                try {
-                    const { generateKeyPair, exportPublicKey, exportPrivateKey } = await import('./lib/e2ee');
-                    const { updatePublicKey } = await import('./lib/api');
-                    let privateKey = localStorage.getItem(`chat_privkey_${returnedUsername}`);
-                    if (!privateKey) {
-                        const keyPair = await generateKeyPair();
-                        const pubJwk = await exportPublicKey(keyPair.publicKey);
-                        const privJwk = await exportPrivateKey(keyPair.privateKey);
-                        localStorage.setItem(`chat_privkey_${returnedUsername}`, privJwk);
-                        localStorage.setItem(`chat_pubkey_${returnedUsername}`, pubJwk);
-                        await updatePublicKey(pubJwk);
+                // E2EE Key Management
+                if (window.crypto?.subtle) {
+                    try {
+                        const { generateKeyPair, exportPublicKey, exportPrivateKey } = await import('./lib/e2ee');
+                        const { updatePublicKey } = await import('./lib/api');
+                        let privateKey = localStorage.getItem(`chat_privkey_${returnedUsername}`);
+                        if (!privateKey) {
+                            const keyPair = await generateKeyPair();
+                            const pubJwk = await exportPublicKey(keyPair.publicKey);
+                            const privJwk = await exportPrivateKey(keyPair.privateKey);
+                            localStorage.setItem(`chat_privkey_${returnedUsername}`, privJwk);
+                            localStorage.setItem(`chat_pubkey_${returnedUsername}`, pubJwk);
+                            await updatePublicKey(pubJwk);
+                        }
+                    } catch (e2eeErr) {
+                        console.warn('E2EE setup skipped:', e2eeErr);
                     }
-                } catch (e2eeErr) {
-                    console.warn('E2EE setup skipped:', e2eeErr);
                 }
-            }
 
-            onAuth(returnedUsername, token);
+                onAuth(returnedUsername, token);
+            }
         } catch (err) {
             setGlobalError(err instanceof Error ? err.message : 'Something went wrong.');
         } finally {
@@ -148,197 +161,190 @@ export default function Auth({ onAuth }: AuthProps) {
         }
     };
 
-    const switchMode = () => {
-        setIsLogin(p => !p);
+    const switchMode = (mode: 'login' | 'signup' | 'forgot-req') => {
+        setAuthMode(mode);
         clearErrors();
-        setUsername('');
         setPassword('');
-    };
-
-    return (
+        setResetCode('');
+        setMockEmailToast('');
+    };    return (
         <div style={{
-            minHeight: '100vh', display: 'flex',
+            minHeight: '100vh', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
             background: 'var(--bg-base)',
+            padding: '24px'
         }}>
-            {/* ── Left brand panel (desktop only) ─────────────── */}
             <div style={{
-                display: 'none',
-                width: '50%', flexShrink: 0,
-                background: 'linear-gradient(145deg, #3b5ce4 0%, #4f6ef7 40%, #6b86f8 100%)',
+                width: '100%', 
+                maxWidth: 420, 
+                background: 'var(--bg-surface)', 
+                border: '1px solid var(--border)',
+                borderRadius: 24,
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.05)',
+                padding: '40px',
+                display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
-                padding: '48px 52px',
-                position: 'relative',
-                overflow: 'hidden',
-            }}
-                className="auth-left-panel"
-            >
-                {/* Decorative circles */}
-                <div style={{ position: 'absolute', top: -80, right: -80, width: 320, height: 320, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', bottom: -120, left: -60, width: 400, height: 400, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', top: '40%', right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
-
-                {/* Brand */}
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                            width: 40, height: 40, borderRadius: 12,
-                            background: 'rgba(255,255,255,0.15)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                            <Icon d={Icons.messageCircle} size={20} color="white" strokeWidth={2} />
-                        </div>
-                        <span style={{ fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: '-0.03em' }}>Slate</span>
-                    </div>
+                alignItems: 'center'
+            }} className="animate-fade-in">
+                
+                {/* Brand Logo */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+                    <BrandMark size={44} />
+                    <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>Slate</span>
                 </div>
 
-                {/* Headline */}
-                <div>
-                    <h1 style={{ fontSize: 38, fontWeight: 800, color: '#fff', lineHeight: 1.15, letterSpacing: '-0.04em', marginBottom: 16 }}>
-                        Where teams<br />communicate.
+                {/* Heading */}
+                <div style={{ textAlign: 'center', width: '100%', marginBottom: 32 }}>
+                    <h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.04em', marginBottom: 8 }}>
+                        {authMode === 'login' ? 'Welcome back' : authMode === 'signup' ? 'Create an account' : 'Reset password'}
                     </h1>
-                    <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginBottom: 48, maxWidth: 340 }}>
-                        Real-time messaging, voice &amp; video calls, end-to-end encrypted direct messages — all in one place.
+                    <p style={{ fontSize: 15, color: 'var(--text-muted)' }}>
+                        {authMode === 'login'
+                            ? 'Enter your details to sign in to your workspace'
+                            : authMode === 'signup'
+                                ? 'Enter your details to get started with Slate'
+                                : authMode === 'forgot-req'
+                                    ? 'Enter your username to receive a reset code'
+                                    : 'Enter your reset code and new password'}
                     </p>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        <FeatureItem icon={Icons.shield} label="End-to-End Encrypted" desc="Your DMs are private. Always." />
-                        <FeatureItem icon={Icons.video} label="Voice & Video Calls" desc="Crystal-clear peer-to-peer calling." />
-                        <FeatureItem icon={Icons.users} label="Team Rooms" desc="Organised channels for every project." />
-                    </div>
                 </div>
 
-                {/* Footer */}
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>© 2025 Slate</p>
-            </div>
-
-            {/* ── Right form panel ─────────────────────────────── */}
-            <div style={{
-                flex: 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '32px 24px',
-            }}>
-                <div style={{ width: '100%', maxWidth: 400 }} className="animate-fade-in">
-
-                    {/* Mobile brand */}
-                    <div className="auth-mobile-brand" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 36 }}>
-                        <BrandMark size={32} />
-                        <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>Slate</span>
+                {/* Mock Email Toast */}
+                {mockEmailToast && (
+                    <div style={{
+                        width: '100%', marginBottom: 20, padding: 12,
+                        background: 'var(--bg-elevated)', border: '1px solid var(--accent)',
+                        borderRadius: 10, color: 'var(--text-primary)', fontSize: 14,
+                        textAlign: 'center', boxShadow: '0 4px 12px var(--accent-glow)',
+                    }}>
+                        <strong>{mockEmailToast}</strong>
                     </div>
+                )}
 
-                    {/* Heading */}
-                    <div style={{ marginBottom: 32 }}>
-                        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.04em', marginBottom: 8 }}>
-                            {isLogin ? 'Welcome back' : 'Create your account'}
-                        </h1>
-                        <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                            {isLogin
-                                ? 'Sign in to continue to Slate'
-                                : 'Start chatting with your team today'}
-                        </p>
-                    </div>
+                {/* Form */}
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%' }} noValidate>
+                    <InputField
+                        id="auth-username"
+                        label="Username"
+                        value={username}
+                        onChange={v => { setUsername(v); clearErrors(); }}
+                        placeholder="johndoe"
+                        autoFocus
+                        autoComplete="username"
+                        error={fieldErrors.username}
+                    />
 
-                    {/* Form */}
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }} noValidate>
+                    {authMode === 'forgot-reset' && (
                         <InputField
-                            id="auth-username"
-                            label="Username"
-                            value={username}
-                            onChange={v => { setUsername(v); clearErrors(); }}
-                            placeholder="johndoe"
-                            autoFocus
-                            autoComplete="username"
-                            error={fieldErrors.username}
+                            id="auth-reset-code"
+                            label="Reset Code"
+                            value={resetCode}
+                            onChange={v => { setResetCode(v); clearErrors(); }}
+                            placeholder="123456"
+                            error={fieldErrors.resetCode}
                         />
+                    )}
+
+                    {authMode !== 'forgot-req' && (
                         <InputField
                             id="auth-password"
-                            label="Password"
+                            label={authMode === 'forgot-reset' ? "New Password" : "Password"}
                             type="password"
                             value={password}
                             onChange={v => { setPassword(v); clearErrors(); }}
                             placeholder="••••••••"
-                            autoComplete={isLogin ? 'current-password' : 'new-password'}
+                            autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                             error={fieldErrors.password}
                         />
+                    )}
+                    
+                    {authMode === 'login' && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
+                            <button 
+                                type="button" 
+                                onClick={() => switchMode('forgot-req')} 
+                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, fontWeight: 500, cursor: 'pointer', padding: 0 }}
+                                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                            >
+                                Forgot password?
+                            </button>
+                        </div>
+                    )}
 
-                        {globalError && (
-                            <div style={{
-                                display: 'flex', alignItems: 'flex-start', gap: 10,
-                                padding: '12px 14px',
-                                background: 'var(--danger-bg)',
-                                border: '1px solid rgba(239,68,68,0.15)',
-                                borderRadius: 10,
-                                fontSize: 13, color: 'var(--danger)',
-                            }}>
-                                <Icon d={Icons.xCircle} size={16} color="var(--danger)" style={{ flexShrink: 0, marginTop: 1 }} />
-                                {globalError}
-                            </div>
-                        )}
+                    {globalError && (
+                        <div style={{
+                            display: 'flex', alignItems: 'flex-start', gap: 10,
+                            padding: '12px 14px',
+                            background: 'var(--danger-bg)',
+                            border: '1px solid rgba(239,68,68,0.15)',
+                            borderRadius: 10,
+                            fontSize: 13, color: 'var(--danger)',
+                        }}>
+                            <Icon d={Icons.xCircle} size={16} color="var(--danger)" style={{ flexShrink: 0, marginTop: 1 }} />
+                            {globalError}
+                        </div>
+                    )}
 
-                        <button
-                            id="auth-submit-btn"
-                            type="submit"
-                            disabled={isLoading}
-                            style={{
-                                marginTop: 4,
-                                height: 46,
-                                width: '100%',
-                                background: isLoading ? 'var(--accent-light)' : 'var(--accent)',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: 10,
-                                fontSize: 15,
-                                fontWeight: 600,
-                                cursor: isLoading ? 'not-allowed' : 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                                fontFamily: 'inherit',
-                                letterSpacing: '-0.01em',
-                                boxShadow: '0 2px 12px rgba(79,110,247,0.3)',
-                                transition: 'all 0.15s',
-                            }}
-                            onMouseEnter={e => { if (!isLoading) e.currentTarget.style.background = 'var(--accent-hover)'; }}
-                            onMouseLeave={e => { if (!isLoading) e.currentTarget.style.background = 'var(--accent)'; }}
-                        >
-                            {isLoading ? (
-                                <>
-                                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} style={{ animation: 'spin 0.8s linear infinite' }}>
-                                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                                    </svg>
-                                    {isLogin ? 'Signing in…' : 'Creating account…'}
-                                </>
-                            ) : isLogin ? 'Sign In' : 'Create Account'}
-                        </button>
-                    </form>
+                    <button
+                        id="auth-submit-btn"
+                        type="submit"
+                        disabled={isLoading}
+                        style={{
+                            marginTop: 8,
+                            height: 48,
+                            width: '100%',
+                            background: isLoading ? 'var(--accent-light)' : 'var(--accent)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 12,
+                            fontSize: 15,
+                            fontWeight: 600,
+                            cursor: isLoading ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            fontFamily: 'inherit',
+                            letterSpacing: '-0.01em',
+                            boxShadow: '0 4px 14px var(--accent-glow)',
+                            transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={e => { if (!isLoading) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={e => { if (!isLoading) e.currentTarget.style.transform = 'none'; }}
+                    >
+                        {isLoading ? (
+                            <>
+                                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} style={{ animation: 'spin 0.8s linear infinite' }}>
+                                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                                </svg>
+                                {authMode === 'login' ? 'Signing in…' : authMode === 'signup' ? 'Creating account…' : 'Processing…'}
+                            </>
+                        ) : authMode === 'login' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : authMode === 'forgot-req' ? 'Send Reset Code' : 'Reset Password'}
+                    </button>
+                </form>
 
-                    {/* Toggle mode */}
-                    <p style={{ marginTop: 28, textAlign: 'center', fontSize: 14, color: 'var(--text-muted)' }}>
-                        {isLogin ? "Don't have an account?" : 'Already have an account?'}
-                        {' '}
-                        <button
-                            id="auth-toggle-btn"
-                            type="button"
-                            onClick={switchMode}
-                            style={{
-                                background: 'none', border: 'none',
-                                color: 'var(--accent)', fontWeight: 600,
-                                fontSize: 14, cursor: 'pointer',
-                                fontFamily: 'inherit', padding: '0 2px',
-                                letterSpacing: '-0.01em',
-                            }}
-                        >
-                            {isLogin ? 'Sign up' : 'Sign in'}
-                        </button>
-                    </p>
-                </div>
+                {/* Toggle mode */}
+                <p style={{ marginTop: 32, textAlign: 'center', fontSize: 14, color: 'var(--text-muted)' }}>
+                    {authMode === 'login' ? "Don't have an account?" : authMode === 'signup' ? 'Already have an account?' : 'Remember your password?'}
+                    {' '}
+                    <button
+                        id="auth-toggle-btn"
+                        type="button"
+                        onClick={() => switchMode(authMode === 'login' ? 'signup' : 'login')}
+                        style={{
+                            background: 'none', border: 'none',
+                            color: 'var(--accent)', fontWeight: 600,
+                            fontSize: 14, cursor: 'pointer',
+                            fontFamily: 'inherit', padding: '0 4px',
+                            letterSpacing: '-0.01em',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+                        onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+                    >
+                        {authMode === 'login' ? 'Sign up' : 'Sign in'}
+                    </button>
+                </p>
             </div>
-
-            {/* Responsive style */}
-            <style>{`
-                @media (min-width: 768px) {
-                    .auth-left-panel { display: flex !important; }
-                    .auth-mobile-brand { display: none !important; }
-                }
-            `}</style>
         </div>
     );
 }

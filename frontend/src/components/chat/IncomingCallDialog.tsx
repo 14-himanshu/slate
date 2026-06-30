@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Avatar, Icon, Icons } from '../ui';
 
 interface IncomingCallDialogProps {
@@ -8,6 +9,50 @@ interface IncomingCallDialogProps {
 }
 
 export function IncomingCallDialog({ callerUsername, isVideoCall = true, onAccept, onDecline }: IncomingCallDialogProps) {
+  useEffect(() => {
+    let ctx: AudioContext | null = null;
+    let osc: OscillatorNode | null = null;
+    let gain: GainNode | null = null;
+    let interval: NodeJS.Timeout;
+
+    try {
+      ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      osc = ctx.createOscillator();
+      gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.value = 440;
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      gain.gain.value = 0;
+      osc.start();
+
+      let isHigh = false;
+      interval = setInterval(() => {
+        if (gain && ctx) {
+          gain.gain.setTargetAtTime(isHigh ? 0 : 0.1, ctx.currentTime, 0.05);
+          osc!.frequency.setValueAtTime(isHigh ? 480 : 440, ctx.currentTime);
+          isHigh = !isHigh;
+        }
+      }, 500);
+    } catch (e) {
+      console.warn('AudioContext not supported or blocked');
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (gain && ctx) gain.gain.setValueAtTime(0, ctx.currentTime);
+      if (osc) {
+        try { osc.stop(); } catch(e) {}
+        osc.disconnect();
+      }
+      if (gain) gain.disconnect();
+      if (ctx && ctx.state !== 'closed') ctx.close();
+    };
+  }, []);
+
   if (!callerUsername) return null;
 
   return (

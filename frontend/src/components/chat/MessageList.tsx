@@ -10,12 +10,12 @@ function formatDateLabel(d: Date) {
     yest.setDate(yest.getDate() - 1);
     if (d.toDateString() === today.toDateString()) return 'Today';
     if (d.toDateString() === yest.toDateString()) return 'Yesterday';
-    return d.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export function MessageList({ messages, currentUser, messagesEndRef, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, onLoadMore, savedMessages, onToggleSave, unreadCount }: {
+export function MessageList({ messages, currentUser, messagesEndRef, onReply, onThreadReply, onEdit, onDelete, onReact, onPin, onJumpToMessage, onLoadMore, savedMessages, onToggleSave, unreadCount }: {
     messages: ChatMessage[]; currentUser: string | null; messagesEndRef: React.RefObject<HTMLDivElement | null>;
-    onReply: (m: ChatMessage) => void; onThreadReply?: (m: ChatMessage) => void; onEdit: (m: ChatMessage) => void; onDelete: (m: ChatMessage) => void; onReact: (m: ChatMessage, icon: string) => void;
+    onReply: (m: ChatMessage) => void; onThreadReply?: (m: ChatMessage) => void; onEdit: (m: ChatMessage) => void; onDelete: (m: ChatMessage) => void; onReact: (m: ChatMessage, icon: string) => void; onPin?: (m: ChatMessage) => void;
     onJumpToMessage: (id: string) => void;
     onLoadMore?: () => void;
     savedMessages?: Message[];
@@ -114,6 +114,7 @@ export function MessageList({ messages, currentUser, messagesEndRef, onReply, on
                             onEdit={onEdit} 
                             onDelete={onDelete} 
                             onReact={onReact} 
+                            onPin={onPin}
                             onJumpToMessage={onJumpToMessage}
                             onToggleSave={onToggleSave}
                             isSaved={savedMessages ? savedMessages.some(sm => sm.id === msg.id) : false}

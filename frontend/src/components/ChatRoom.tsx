@@ -11,6 +11,7 @@ import { GlobalSearch } from './chat/GlobalSearch';
 import { SavedItemsPanel } from './chat/SavedItemsPanel';
 import { PinnedMessagesModal } from './chat/PinnedMessagesModal';
 import { ThreadPanel } from './chat/ThreadPanel';
+import { RightSidebar } from './chat/RightSidebar';
 
 export interface ChatRoomProps {
     userRooms: import('../types').RoomSummary[];
@@ -108,6 +109,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     const [showGlobalSearch, setShowGlobalSearch] = useState(false);
     const [showSavedItems, setShowSavedItems] = useState(false);
     const [savedMessages, setSavedMessages] = useState<Message[]>([]);
+    const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
     const scrollAreaRef = useRef<HTMLElement | null>(null);
 
     useEffect(() => {
@@ -148,6 +150,10 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     const handleUnpin = (msg: Message | DirectMessage) => {
         // Implement unpin logic when backend is ready or just a mock toast
         setLocalToast(`Unpinned message ${msg.id}`);
+    };
+
+    const handlePin = (msg: Message | DirectMessage) => {
+        setLocalToast(`Pinned message ${msg.id}`);
     };
 
 
@@ -240,7 +246,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     };
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '310px 1fr', width: '100%', height: '100%' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', width: '100%', height: '100%' }}>
             {/* Sidebar */}
             <Sidebar
                 userRooms={userRooms}
@@ -257,6 +263,15 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                 onSearchUsers={onSearchUsers}
                 onOpenSavedItems={() => setShowSavedItems(true)}
                 onOpenProfile={onOpenProfile}
+            />
+
+            <RightSidebar 
+                isOpen={isRightSidebarOpen}
+                activeSection={activeSection}
+                onlineUsers={onlineUsers}
+                currentUser={currentUser}
+                activeConversation={activeConversation || null}
+                messages={messages}
             />
 
             {/* Main area */}
@@ -384,6 +399,9 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                                 color={mutedRooms.includes(activeConversationId || activeRoom || '') ? '#EF4444' : undefined} 
                             />
                         </IconButton>
+                        <IconButton label={isRightSidebarOpen ? "Hide info" : "Show info"} onClick={() => setIsRightSidebarOpen(prev => !prev)}>
+                            <Icon d={Icons.info} size={16} />
+                        </IconButton>
 
 
                     </div>
@@ -421,6 +439,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                                     onEdit={(m) => { setEditingMsg(m); setInputValue(m.text); }}
                                     onDelete={handleDelete}
                                     onReact={handleReact}
+                                    onPin={handlePin}
                                     onJumpToMessage={handleJumpToMessage}
                                     onLoadMore={handleLoadMore}
                                     savedMessages={savedMessages}
@@ -480,7 +499,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
                     />
                 </div>
                 </div>
-                {activeThreadId && (
+                {activeThreadId && messages.find(m => m.id === activeThreadId) && (
                     <ThreadPanel 
                         parentMessage={messages.find(m => m.id === activeThreadId) as Message}
                         messages={threadMessages[activeThreadId] || []}

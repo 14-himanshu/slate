@@ -69,8 +69,8 @@ export function ContextMenuItem({ icon, label, onClick, danger }: any) {
     );
 }
 
-export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, onDelete, onToggleSave, isSaved, onClose }: {
-    msg: any, mine: boolean, onReply: any, onThreadReply?: any, onEdit: any, onDelete: any, onToggleSave: any, isSaved: boolean, onClose: () => void
+export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, onDelete, onToggleSave, isSaved, onPin, onClose }: {
+    msg: any, mine: boolean, onReply: any, onThreadReply?: any, onEdit: any, onDelete: any, onToggleSave: any, isSaved: boolean, onPin?: any, onClose: () => void
 }) {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -136,6 +136,11 @@ export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, 
             )}
             
             {!mine && <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />}
+            <ContextMenuItem 
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill={msg.isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M21.1 11.1L12.9 2.9a2 2 0 0 0-2.8 0l-1.4 1.4a2 2 0 0 0 0 2.8l2.8 2.8-5.7 5.7-4.2-.7a1 1 0 0 0-1.1 1.1l.7 4.2 5.7-5.7 2.8 2.8a2 2 0 0 0 2.8 0l1.4-1.4a2 2 0 0 0 0-2.8z"></path></svg>} 
+                label={msg.isPinned ? "Unpin Message" : "Pin Message"} 
+                onClick={() => { if (onPin) onPin(msg); onClose(); }} 
+            />
             {!mine && (
                 <ContextMenuItem 
                     icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>} 
@@ -148,7 +153,7 @@ export function MessageContextMenu({ msg, mine, onReply, onThreadReply, onEdit, 
     );
 }
 
-export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLastInGroup = true, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, onToggleSave, isSaved, activeMenuMessageId, setActiveMenuMessageId }: any) {
+export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLastInGroup = true, onReply, onThreadReply, onEdit, onDelete, onReact, onJumpToMessage, onToggleSave, isSaved, onPin, activeMenuMessageId, setActiveMenuMessageId }: any) {
     const [isHovered, setIsHovered] = useState(false);
     const [decryptedText, setDecryptedText] = useState<string | null>(null);
     const [decryptedLinkPreview, setDecryptedLinkPreview] = useState<any>(null);
@@ -286,7 +291,7 @@ export function MessageItem({ msg, mine, hideHeader, isFirstInGroup = true, isLa
                                 {/* Image message */}
                                 {msg.type === 'image' && msg.fileUrl && (
                                     <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
-                                        <img src={msg.fileUrl} alt={msg.fileName ?? 'image'} style={{ display: 'block', maxWidth: '300px', maxHeight: '300px', borderRadius: 8, objectFit: 'cover', marginTop: 4, border: '1px solid var(--border)' }} />
+                                        <img src={msg.fileUrl} alt={msg.fileName ?? 'image'} loading="lazy" style={{ display: 'block', maxWidth: '300px', maxHeight: '300px', borderRadius: 8, objectFit: 'cover', marginTop: 4, border: '1px solid var(--border)' }} />
                                     </a>
                                 )}
                                 {/* File message */}

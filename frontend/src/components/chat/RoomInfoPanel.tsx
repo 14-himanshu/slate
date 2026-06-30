@@ -140,7 +140,7 @@ export function RoomInfoPanel({ room, onlineUsers, messages = [], onClose, onLea
                           border: '1px solid var(--border)', position: 'relative'
                         }}
                       >
-                        <img src={msg.fileUrl} alt="Shared media" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={msg.fileUrl} alt="Shared media" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     ))
                   ) : (
